@@ -46,3 +46,16 @@ Known gaps:
 
 Known gaps:
 - Readability behavior still needs manual browser validation on real article, docs, and app pages.
+
+## 2026-06-01 - Phase 4
+
+- Replaced the fake echo flow with background-worker LLM chat.
+- Added typed start, stop, chunk, done, and error runtime messages.
+- Streamed provider chunks back to the content script and rendered them live in the assistant message.
+- Added Stop support using AbortController through the provider fetch.
+- Added a page-aware system prompt that includes title, URL, selection, readable page content, and truncation status.
+- Preserved conversation history within the widget session.
+- Rendered provider and settings errors as in-chat assistant errors.
+
+Known gaps:
+- Live provider behavior requires real API keys. Typecheck and production build pass, but streaming was not exercised against a live model in this environment.

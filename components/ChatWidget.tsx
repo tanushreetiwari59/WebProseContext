@@ -13,18 +13,25 @@ import { KeyboardEvent, useEffect, useRef, useState } from 'react';
 import { MarkdownMessage } from './MarkdownMessage';
 import { extractPageContext } from '@/lib/context/extractPageContext';
 import type { PageContext } from '@/types/page-context';
+import { MESSAGE_TYPES, type RuntimeEvent } from '@/types/messaging';
+import {
+  addRuntimeEventListener,
+  sendRuntimeMessage,
+} from '@/lib/messaging/runtime';
+import type { ChatMessage } from '@/types/chat';
 
 interface WidgetMessage {
   id: string;
   role: 'user' | 'assistant';
   content: string;
+  status?: 'streaming' | 'error';
 }
 
 const INITIAL_MESSAGE: WidgetMessage = {
   id: 'welcome',
   role: 'assistant',
   content:
-    'Ask a question about this page. For now I will echo your message so you can test the widget flow.\n\n```ts\nconst phase = 2;\n```',
+    'Ask a question about this page. Responses stream through your configured provider.\n\n```ts\nconst phase = 4;\n```',
 };
 
 export function ChatWidget() {
@@ -38,6 +45,9 @@ export function ChatWidget() {
   const [contextPreview, setContextPreview] = useState<PageContext | null>(
     null,
   );
+  const [activeRequestId, setActiveRequestId] = useState<string | null>(null);
+  const activeRequestIdRef = useRef<string | null>(null);
+  const activeAssistantIdRef = useRef<string | null>(null);
   const panelRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -66,9 +76,16 @@ export function ChatWidget() {
     return () => document.removeEventListener('keydown', onKeyDown);
   }, []);
 
-  function submitMessage() {
+  useEffect(() => {
+    return addRuntimeEventListener((event) => {
+      if (event.requestId !== activeRequestIdRef.current) return;
+      handleRuntimeEvent(event);
+    });
+  }, []);
+
+  async function submitMessage() {
     const content = input.trim();
-    if (!content || isThinking) return;
+    if (!content || activeRequestId) return;
 
     const userMessage: WidgetMessage = {
       id: crypto.randomUUID(),
@@ -78,28 +95,105 @@ export function ChatWidget() {
     const attachedContext = contextEnabled
       ? extractPageContext({ tokenBudget: 3000 })
       : null;
+    const assistantId = crypto.randomUUID();
+    const requestId = crypto.randomUUID();
 
-    setMessages((current) => [...current, userMessage]);
+    setMessages((current) => [
+      ...current,
+      userMessage,
+      {
+        id: assistantId,
+        role: 'assistant',
+        content: '',
+        status: 'streaming',
+      },
+    ]);
     setInput('');
     setIsThinking(true);
+    setActiveRequestId(requestId);
+    activeRequestIdRef.current = requestId;
+    activeAssistantIdRef.current = assistantId;
 
-    window.setTimeout(() => {
-      setMessages((current) => [
-        ...current,
-        {
-          id: crypto.randomUUID(),
-          role: 'assistant',
-          content: buildEchoResponse(content, attachedContext),
-        },
-      ]);
-      setIsThinking(false);
-    }, 450);
+    const response = await sendRuntimeMessage({
+      type: MESSAGE_TYPES.START_CHAT,
+      requestId,
+      messages: toChatMessages([...messages, userMessage]),
+      context: attachedContext,
+    });
+
+    if (!response.ok) {
+      completeWithError(response.error ?? 'Chat request failed.');
+    }
   }
 
   function onComposerKeyDown(event: KeyboardEvent<HTMLTextAreaElement>) {
     if (event.key !== 'Enter' || event.shiftKey) return;
     event.preventDefault();
     submitMessage();
+  }
+
+  async function stopStreaming() {
+    if (!activeRequestId) return;
+
+    await sendRuntimeMessage({
+      type: MESSAGE_TYPES.STOP_CHAT,
+      requestId: activeRequestId,
+    });
+    finishStreaming();
+  }
+
+  function handleRuntimeEvent(event: RuntimeEvent) {
+    if (event.type === MESSAGE_TYPES.CHAT_CHUNK) {
+      const assistantId = activeAssistantIdRef.current;
+      setMessages((current) =>
+        current.map((message) =>
+          message.id === assistantId
+            ? { ...message, content: message.content + event.chunk }
+            : message,
+        ),
+      );
+      return;
+    }
+
+    if (event.type === MESSAGE_TYPES.CHAT_ERROR) {
+      completeWithError(event.error);
+      return;
+    }
+
+    if (event.type === MESSAGE_TYPES.CHAT_DONE) {
+      finishStreaming();
+    }
+  }
+
+  function completeWithError(error: string) {
+    const assistantId = activeAssistantIdRef.current;
+    setMessages((current) =>
+      current.map((message) =>
+        message.id === assistantId
+          ? {
+              ...message,
+              content: error,
+              status: 'error',
+            }
+          : message,
+      ),
+    );
+    finishStreaming();
+  }
+
+  function finishStreaming() {
+    const assistantId = activeAssistantIdRef.current;
+    setMessages((current) =>
+      current.map((message) =>
+        message.id === assistantId && message.status === 'streaming'
+          ? { ...message, status: undefined }
+          : message,
+      ),
+    );
+    setIsThinking(false);
+    setActiveRequestId(null);
+    activeRequestIdRef.current = null;
+    activeAssistantIdRef.current = null;
   }
 
   return (
@@ -157,6 +251,7 @@ export function ChatWidget() {
             <button
               type="button"
               onClick={() => setMessages([INITIAL_MESSAGE])}
+              disabled={Boolean(activeRequestId)}
               className="grid h-8 w-8 place-items-center rounded-md text-slate-500 transition hover:bg-slate-100 hover:text-slate-900 focus:outline-none focus:ring-2 focus:ring-sky-500 dark:text-slate-400 dark:hover:bg-slate-900 dark:hover:text-slate-100"
               aria-label="Clear chat"
               title="Clear"
@@ -221,10 +316,18 @@ export function ChatWidget() {
                 className={`max-w-[18rem] rounded-lg px-3 py-2 text-sm leading-6 ${
                   message.role === 'user'
                     ? 'bg-slate-900 text-white dark:bg-slate-100 dark:text-slate-950'
+                    : message.status === 'error'
+                      ? 'border border-red-200 bg-red-50 text-red-800 dark:border-red-900 dark:bg-red-950 dark:text-red-200'
                     : 'border border-slate-200 bg-slate-50 text-slate-800 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-100'
                 }`}
               >
-                <MarkdownMessage content={message.content} />
+                {message.content ? (
+                  <MarkdownMessage content={message.content} />
+                ) : (
+                  <span className="text-slate-500 dark:text-slate-400">
+                    Starting response...
+                  </span>
+                )}
               </div>
             </article>
           ))}
@@ -250,13 +353,21 @@ export function ChatWidget() {
             />
             <button
               type="button"
-              onClick={submitMessage}
-              disabled={!input.trim() || isThinking}
-              className="grid h-10 w-10 shrink-0 place-items-center rounded-md bg-sky-600 text-white transition hover:bg-sky-700 focus:outline-none focus:ring-2 focus:ring-sky-500 disabled:cursor-not-allowed disabled:bg-slate-300 dark:disabled:bg-slate-700"
-              aria-label="Send message"
-              title="Send"
+              onClick={activeRequestId ? stopStreaming : submitMessage}
+              disabled={!activeRequestId && !input.trim()}
+              className={`grid h-10 w-10 shrink-0 place-items-center rounded-md text-white transition focus:outline-none focus:ring-2 focus:ring-sky-500 disabled:cursor-not-allowed disabled:bg-slate-300 dark:disabled:bg-slate-700 ${
+                activeRequestId
+                  ? 'bg-red-600 hover:bg-red-700'
+                  : 'bg-sky-600 hover:bg-sky-700'
+              }`}
+              aria-label={activeRequestId ? 'Stop response' : 'Send message'}
+              title={activeRequestId ? 'Stop' : 'Send'}
             >
-              <Send className="h-4 w-4" />
+              {activeRequestId ? (
+                <X className="h-4 w-4" />
+              ) : (
+                <Send className="h-4 w-4" />
+              )}
             </button>
           </div>
         </footer>
@@ -279,20 +390,11 @@ export function ChatWidget() {
   );
 }
 
-function buildEchoResponse(
-  content: string,
-  attachedContext: PageContext | null,
-): string {
-  if (!attachedContext) {
-    return `Echo response:\n\n> ${content}\n\nPage context is off. Markdown is enabled, including lists, links, and code blocks.`;
-  }
-
-  const selectionLine = attachedContext.selection
-    ? '\n- Selection is attached.'
-    : '';
-  const truncatedLine = attachedContext.truncated
-    ? '\n- Page content was truncated to fit the token budget.'
-    : '';
-
-  return `Echo response:\n\n> ${content}\n\nAttached context:\n\n- Page: ${attachedContext.title}\n- URL: ${attachedContext.url}${selectionLine}${truncatedLine}\n- Estimated tokens: ${attachedContext.estimatedTokens} of ${attachedContext.tokenBudget}\n\nMarkdown is enabled, including lists, links, and code blocks.`;
+function toChatMessages(messages: WidgetMessage[]): ChatMessage[] {
+  return messages
+    .filter((message) => message.id !== INITIAL_MESSAGE.id && message.content)
+    .map((message) => ({
+      role: message.role,
+      content: message.content,
+    }));
 }
