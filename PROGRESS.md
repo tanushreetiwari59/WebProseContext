@@ -114,3 +114,13 @@ Known gaps:
 
 Known gaps:
 - The provider network test still requires a real key and provider account access.
+
+## 2026-06-01 - Popup Chat Entry
+
+- Added an "Open chat on this page" action to the popup once a key is configured.
+- Added a content-script command that opens the Shadow DOM chat widget from the popup.
+- Added a clear popup error when the current tab cannot host the widget, such as browser pages or extension pages.
+- Kept "Manage settings" available as the secondary action after setup.
+
+Known gaps:
+- Restricted browser pages still cannot run extension content scripts by design.

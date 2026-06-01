@@ -4,6 +4,7 @@ import type { PageContext } from './page-context';
 
 export const MESSAGE_TYPES = {
   GET_SETTINGS_STATUS: 'webprose:get-settings-status',
+  OPEN_WIDGET: 'webprose:open-widget',
   TEST_CONNECTION: 'webprose:test-connection',
   START_CHAT: 'webprose:start-chat',
   STOP_CHAT: 'webprose:stop-chat',
@@ -23,6 +24,10 @@ export interface SettingsStatusResponse {
   model?: string;
   keyPreview?: string;
   error?: string;
+}
+
+export interface OpenWidgetRequest {
+  type: typeof MESSAGE_TYPES.OPEN_WIDGET;
 }
 
 export interface TestConnectionRequest {

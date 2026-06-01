@@ -25,6 +25,7 @@ import { QUICK_ACTIONS, REWRITE_TONES, type QuickAction } from './quickActions';
 import { getSettings, setSettings } from '@/lib/storage/settings';
 import type { AppSettings } from '@/types/settings';
 import { openSettingsPage } from '@/lib/settingsPage';
+import { browser } from 'wxt/browser';
 
 interface WidgetMessage {
   id: string;
@@ -94,6 +95,18 @@ export function ChatWidget() {
 
     document.addEventListener('keydown', onKeyDown);
     return () => document.removeEventListener('keydown', onKeyDown);
+  }, []);
+
+  useEffect(() => {
+    const listener = (message: { type?: string }) => {
+      if (message.type !== MESSAGE_TYPES.OPEN_WIDGET) return undefined;
+
+      setIsOpen(true);
+      return { ok: true };
+    };
+
+    browser.runtime.onMessage.addListener(listener);
+    return () => browser.runtime.onMessage.removeListener(listener);
   }, []);
 
   useEffect(() => {
