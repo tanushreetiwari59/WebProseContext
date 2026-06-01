@@ -24,7 +24,7 @@ import type { ChatMessage } from '@/types/chat';
 import { QUICK_ACTIONS, REWRITE_TONES, type QuickAction } from './quickActions';
 import { getSettings, setSettings } from '@/lib/storage/settings';
 import type { AppSettings } from '@/types/settings';
-import { browser } from 'wxt/browser';
+import { openSettingsPage } from '@/lib/settingsPage';
 
 interface WidgetMessage {
   id: string;
@@ -385,7 +385,7 @@ export function ChatWidget() {
               <span>Add an API key to start chatting.</span>
               <button
                 type="button"
-                onClick={() => browser.runtime.openOptionsPage()}
+                onClick={() => openSettingsPage()}
                 className="shrink-0 rounded-md bg-amber-900 px-2 py-1 font-semibold text-white hover:bg-amber-800 focus:outline-none focus:ring-2 focus:ring-amber-500 dark:bg-amber-200 dark:text-amber-950 dark:hover:bg-amber-100"
               >
                 Settings
@@ -568,10 +568,18 @@ function modelSuggestions(settings: AppSettings | null): string[] {
   if (!settings) return [];
 
   const suggestionsByProvider: Record<AppSettings['provider'], string[]> = {
-    anthropic: ['claude-3-5-sonnet-latest', 'claude-3-5-haiku-latest'],
-    'openai-compatible': ['gpt-4o-mini', 'gpt-4o'],
-    gemini: ['gemini-1.5-flash', 'gemini-1.5-pro'],
-    grok: ['grok-2-latest', 'grok-2-vision-latest'],
+    anthropic: [
+      'claude-haiku-4-5-20251001',
+      'claude-sonnet-4-20250514',
+      'claude-3-5-haiku-20241022',
+    ],
+    'openai-compatible': ['gpt-4.1-mini', 'gpt-4.1-nano', 'gpt-4o-mini'],
+    gemini: [
+      'gemini-2.5-flash-lite',
+      'gemini-2.5-flash',
+      'gemini-2.0-flash-lite',
+    ],
+    grok: ['grok-4.3', 'grok-4.20-0309-non-reasoning', 'grok-build-0.1'],
   };
   const suggestions = [...suggestionsByProvider[settings.provider], settings.model];
 

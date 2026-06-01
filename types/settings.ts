@@ -13,7 +13,7 @@ export interface AppSettings {
 
 export const DEFAULT_SETTINGS: AppSettings = {
   provider: 'anthropic',
-  model: 'claude-3-5-sonnet-latest',
+  model: 'claude-haiku-4-5-20251001',
   apiKey: '',
   baseUrl: 'https://api.openai.com/v1',
 };

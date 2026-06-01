@@ -56,6 +56,13 @@ The key is stored in `chrome.storage.local` on this device. It is sent only from
 - Google Gemini API
 - xAI Grok chat completions API
 
+The default model choices favor non-deprecated, lower-cost models:
+
+- Anthropic: `claude-haiku-4-5-20251001`
+- OpenAI compatible: `gpt-4.1-mini`
+- Gemini: `gemini-2.5-flash-lite`
+- Grok: `grok-4.3`
+
 Custom OpenAI-compatible base URLs may request an exact origin permission before connection testing or chat.
 
 ## Widget

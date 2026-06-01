@@ -1,5 +1,5 @@
 import { ExternalLink, Settings } from 'lucide-react';
-import { browser } from 'wxt/browser';
+import { openSettingsPage } from '@/lib/settingsPage';
 
 function App() {
   return (
@@ -11,7 +11,7 @@ function App() {
         </p>
         <button
           type="button"
-          onClick={() => browser.runtime.openOptionsPage()}
+          onClick={() => openSettingsPage()}
           className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-md bg-slate-950 px-3 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-sky-500 dark:bg-white dark:text-slate-950 dark:hover:bg-slate-200"
         >
           <Settings className="h-4 w-4" />

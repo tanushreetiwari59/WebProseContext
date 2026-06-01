@@ -15,6 +15,7 @@ import {
 } from '@/types/settings';
 import { sendRuntimeMessage } from '@/lib/messaging/runtime';
 import { getSettings, setSettings } from '@/lib/storage/settings';
+import { openSettingsPage } from '@/lib/settingsPage';
 
 const PROVIDERS: Array<{
   id: ProviderKind;
@@ -27,28 +28,28 @@ const PROVIDERS: Array<{
     id: 'anthropic',
     label: 'Anthropic',
     description: 'Claude models through the Anthropic Messages API.',
-    defaultModel: 'claude-3-5-sonnet-latest',
+    defaultModel: 'claude-haiku-4-5-20251001',
     defaultBaseUrl: 'https://api.anthropic.com/v1',
   },
   {
     id: 'openai-compatible',
     label: 'OpenAI compatible',
     description: 'OpenAI, local gateways, and compatible hosted APIs.',
-    defaultModel: 'gpt-4o-mini',
+    defaultModel: 'gpt-4.1-mini',
     defaultBaseUrl: 'https://api.openai.com/v1',
   },
   {
     id: 'gemini',
     label: 'Gemini',
     description: 'Google Gemini models through the Gemini API.',
-    defaultModel: 'gemini-1.5-flash',
+    defaultModel: 'gemini-2.5-flash-lite',
     defaultBaseUrl: 'https://generativelanguage.googleapis.com/v1beta',
   },
   {
     id: 'grok',
     label: 'Grok',
     description: 'xAI Grok models through the chat completions API.',
-    defaultModel: 'grok-2-latest',
+    defaultModel: 'grok-4.3',
     defaultBaseUrl: 'https://api.x.ai/v1',
   },
 ];
@@ -165,7 +166,7 @@ function App() {
           </div>
           <button
             type="button"
-            onClick={() => browser.runtime.openOptionsPage()}
+            onClick={() => openSettingsPage()}
             className="inline-flex items-center gap-2 self-start rounded-md border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-700 shadow-sm transition hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-sky-500 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800"
           >
             <ExternalLink className="h-4 w-4" />

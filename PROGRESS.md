@@ -94,3 +94,13 @@ Known gaps:
 
 Known gaps:
 - Gemini and Grok live validation require real API keys.
+
+## 2026-06-01 - Settings Navigation and Model Defaults
+
+- Replaced `openOptionsPage()` calls with a direct extension `options.html` tab opener.
+- Set the options page manifest metadata to open in a normal tab.
+- Updated default provider models toward current, lower-cost choices: Claude Haiku 4.5, GPT-4.1 mini, Gemini 2.5 Flash-Lite, and Grok 4.3.
+- Updated widget model suggestions to avoid deprecated or older defaults.
+
+Known gaps:
+- Model availability can vary by account and region, so users may still need to enter a specific enabled model manually.
