@@ -34,3 +34,15 @@ Known gaps:
 
 Known gaps:
 - Cross-site visual checks need to be done in a browser with the unpacked extension loaded. Typecheck and production build pass in this environment.
+
+## 2026-06-01 - Phase 3
+
+- Added Mozilla Readability page extraction in the content script path.
+- Captured page title, URL, readable body text, and current text selection.
+- Added a token-budget heuristic with paragraph and sentence-aware truncation.
+- Added context chips in the widget for page title, selection attachment, and truncation status.
+- Added a context toggle so users can send messages without page context.
+- Kept extraction tied to widget open and message send events instead of running on every page load.
+
+Known gaps:
+- Readability behavior still needs manual browser validation on real article, docs, and app pages.

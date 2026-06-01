@@ -1,7 +1,9 @@
 import {
   Bot,
+  FileText,
   MessageSquareText,
   Minimize2,
+  MousePointer2,
   Send,
   Sparkles,
   User,
@@ -9,6 +11,8 @@ import {
 } from 'lucide-react';
 import { KeyboardEvent, useEffect, useRef, useState } from 'react';
 import { MarkdownMessage } from './MarkdownMessage';
+import { extractPageContext } from '@/lib/context/extractPageContext';
+import type { PageContext } from '@/types/page-context';
 
 interface WidgetMessage {
   id: string;
@@ -30,6 +34,10 @@ export function ChatWidget() {
     INITIAL_MESSAGE,
   ]);
   const [isThinking, setIsThinking] = useState(false);
+  const [contextEnabled, setContextEnabled] = useState(true);
+  const [contextPreview, setContextPreview] = useState<PageContext | null>(
+    null,
+  );
   const panelRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -37,6 +45,7 @@ export function ChatWidget() {
   useEffect(() => {
     if (!isOpen) return;
 
+    setContextPreview(extractPageContext({ tokenBudget: 500 }));
     const timer = window.setTimeout(() => inputRef.current?.focus(), 120);
     return () => window.clearTimeout(timer);
   }, [isOpen]);
@@ -66,6 +75,9 @@ export function ChatWidget() {
       role: 'user',
       content,
     };
+    const attachedContext = contextEnabled
+      ? extractPageContext({ tokenBudget: 3000 })
+      : null;
 
     setMessages((current) => [...current, userMessage]);
     setInput('');
@@ -77,7 +89,7 @@ export function ChatWidget() {
         {
           id: crypto.randomUUID(),
           role: 'assistant',
-          content: `Echo response:\n\n> ${content}\n\nMarkdown is enabled, including lists, links, and code blocks.`,
+          content: buildEchoResponse(content, attachedContext),
         },
       ]);
       setIsThinking(false);
@@ -113,11 +125,26 @@ export function ChatWidget() {
                 WebProse Context
               </h2>
               <p className="truncate text-xs text-slate-500 dark:text-slate-400">
-                Page chat preview
+                {contextEnabled ? 'Page context on' : 'Page context off'}
               </p>
             </div>
           </div>
           <div className="flex items-center gap-1">
+            <button
+              type="button"
+              onClick={() => setContextEnabled((current) => !current)}
+              className={`grid h-8 w-8 place-items-center rounded-md transition focus:outline-none focus:ring-2 focus:ring-sky-500 ${
+                contextEnabled
+                  ? 'bg-sky-100 text-sky-700 hover:bg-sky-200 dark:bg-sky-950 dark:text-sky-300'
+                  : 'text-slate-500 hover:bg-slate-100 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-slate-900 dark:hover:text-slate-100'
+              }`}
+              aria-label={
+                contextEnabled ? 'Turn page context off' : 'Turn page context on'
+              }
+              title={contextEnabled ? 'Context on' : 'Context off'}
+            >
+              <FileText className="h-4 w-4" />
+            </button>
             <button
               type="button"
               onClick={() => setIsOpen(false)}
@@ -138,6 +165,32 @@ export function ChatWidget() {
             </button>
           </div>
         </header>
+
+        <div className="flex shrink-0 flex-wrap gap-2 border-b border-slate-200 px-4 py-3 dark:border-slate-800">
+          {contextEnabled && contextPreview ? (
+            <>
+              <span className="inline-flex max-w-full items-center gap-1.5 rounded-full bg-slate-100 px-2.5 py-1 text-xs font-medium text-slate-700 dark:bg-slate-900 dark:text-slate-200">
+                <FileText className="h-3.5 w-3.5 shrink-0" />
+                <span className="truncate">Page: {contextPreview.title}</span>
+              </span>
+              {contextPreview.selection ? (
+                <span className="inline-flex items-center gap-1.5 rounded-full bg-sky-100 px-2.5 py-1 text-xs font-medium text-sky-700 dark:bg-sky-950 dark:text-sky-300">
+                  <MousePointer2 className="h-3.5 w-3.5" />
+                  Selection attached
+                </span>
+              ) : null}
+              {contextPreview.truncated ? (
+                <span className="inline-flex items-center rounded-full bg-amber-100 px-2.5 py-1 text-xs font-medium text-amber-800 dark:bg-amber-950 dark:text-amber-200">
+                  Context truncated
+                </span>
+              ) : null}
+            </>
+          ) : (
+            <span className="inline-flex items-center rounded-full bg-slate-100 px-2.5 py-1 text-xs font-medium text-slate-500 dark:bg-slate-900 dark:text-slate-400">
+              No page context attached
+            </span>
+          )}
+        </div>
 
         <div
           ref={scrollRef}
@@ -224,4 +277,22 @@ export function ChatWidget() {
       </button>
     </div>
   );
+}
+
+function buildEchoResponse(
+  content: string,
+  attachedContext: PageContext | null,
+): string {
+  if (!attachedContext) {
+    return `Echo response:\n\n> ${content}\n\nPage context is off. Markdown is enabled, including lists, links, and code blocks.`;
+  }
+
+  const selectionLine = attachedContext.selection
+    ? '\n- Selection is attached.'
+    : '';
+  const truncatedLine = attachedContext.truncated
+    ? '\n- Page content was truncated to fit the token budget.'
+    : '';
+
+  return `Echo response:\n\n> ${content}\n\nAttached context:\n\n- Page: ${attachedContext.title}\n- URL: ${attachedContext.url}${selectionLine}${truncatedLine}\n- Estimated tokens: ${attachedContext.estimatedTokens} of ${attachedContext.tokenBudget}\n\nMarkdown is enabled, including lists, links, and code blocks.`;
 }
