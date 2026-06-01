@@ -8,6 +8,7 @@ import {
   ServerCog,
 } from 'lucide-react';
 import { MESSAGE_TYPES } from '@/types/messaging';
+import type { SettingsStatusResponse } from '@/types/messaging';
 import {
   DEFAULT_SETTINGS,
   type AppSettings,
@@ -104,9 +105,20 @@ function App() {
       setSavedSettings(settings);
       setDraft(settings);
       setKeyInput('');
+      const localStatus = await sendRuntimeMessage({
+        type: MESSAGE_TYPES.GET_SETTINGS_STATUS,
+      }) as SettingsStatusResponse;
+      if (!localStatus.ok || !localStatus.configured) {
+        setStatus({
+          tone: 'error',
+          message:
+            localStatus.error ??
+            'Settings saved, but the background worker could not read the key.',
+        });
+        return;
+      }
       const response = await sendRuntimeMessage({
         type: MESSAGE_TYPES.TEST_CONNECTION,
-        settings,
       });
       setStatus(
         response.ok

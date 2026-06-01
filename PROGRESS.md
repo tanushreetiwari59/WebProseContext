@@ -104,3 +104,13 @@ Known gaps:
 
 Known gaps:
 - Model availability can vary by account and region, so users may still need to enter a specific enabled model manually.
+
+## 2026-06-01 - Local Connection Pipeline
+
+- Added a background settings-status message that reads `chrome.storage.local` and reports whether a key is configured.
+- Changed the provider connection test to use settings read by the background worker, matching the real chat path.
+- Updated the popup from a setup-only screen to a state-aware status screen. After a key is saved, it shows the active provider and model and points users to the floating widget on web pages.
+- Kept settings available as a secondary management action after setup.
+
+Known gaps:
+- The provider network test still requires a real key and provider account access.

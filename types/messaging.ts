@@ -3,6 +3,7 @@ import type { ChatMessage } from './chat';
 import type { PageContext } from './page-context';
 
 export const MESSAGE_TYPES = {
+  GET_SETTINGS_STATUS: 'webprose:get-settings-status',
   TEST_CONNECTION: 'webprose:test-connection',
   START_CHAT: 'webprose:start-chat',
   STOP_CHAT: 'webprose:stop-chat',
@@ -11,9 +12,21 @@ export const MESSAGE_TYPES = {
   CHAT_ERROR: 'webprose:chat-error',
 } as const;
 
+export interface GetSettingsStatusRequest {
+  type: typeof MESSAGE_TYPES.GET_SETTINGS_STATUS;
+}
+
+export interface SettingsStatusResponse {
+  ok: boolean;
+  configured: boolean;
+  provider?: AppSettings['provider'];
+  model?: string;
+  keyPreview?: string;
+  error?: string;
+}
+
 export interface TestConnectionRequest {
   type: typeof MESSAGE_TYPES.TEST_CONNECTION;
-  settings: AppSettings;
 }
 
 export interface TestConnectionResponse {
@@ -56,8 +69,12 @@ export interface RuntimeAckResponse {
 }
 
 export type RuntimeRequest =
+  | GetSettingsStatusRequest
   | TestConnectionRequest
   | StartChatRequest
   | StopChatRequest;
 export type RuntimeEvent = ChatChunkEvent | ChatDoneEvent | ChatErrorEvent;
-export type RuntimeResponse = TestConnectionResponse | RuntimeAckResponse;
+export type RuntimeResponse =
+  | SettingsStatusResponse
+  | TestConnectionResponse
+  | RuntimeAckResponse;

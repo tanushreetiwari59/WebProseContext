@@ -17,9 +17,30 @@ export default defineBackground(() => {
 
   browser.runtime.onMessage.addListener(async (message: RuntimeRequest, sender) => {
     switch (message.type) {
+      case MESSAGE_TYPES.GET_SETTINGS_STATUS:
+        try {
+          const settings = await getSettings();
+          return {
+            ok: true,
+            configured: Boolean(settings.apiKey),
+            provider: settings.provider,
+            model: settings.model,
+            keyPreview: maskKey(settings.apiKey),
+          };
+        } catch (error) {
+          return {
+            ok: false,
+            configured: false,
+            error:
+              error instanceof Error
+                ? error.message
+                : 'Local settings check failed.',
+          };
+        }
       case MESSAGE_TYPES.TEST_CONNECTION:
         try {
-          const provider = createProvider(message.settings);
+          const settings = await getSettings();
+          const provider = createProvider(settings);
           await provider.testConnection();
           return { ok: true };
         } catch (error) {
@@ -85,6 +106,11 @@ async function streamChat(
   } finally {
     activeRequests.delete(message.requestId);
   }
+}
+
+function maskKey(key: string): string {
+  if (!key) return '';
+  return `**** ${key.slice(-4)}`;
 }
 
 function withSystemPrompt(message: StartChatRequest): ChatMessage[] {
