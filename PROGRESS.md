@@ -155,3 +155,14 @@ Known gaps:
 
 Known gaps:
 - Position persistence is per site because it uses page local storage.
+
+## 2026-06-01 - Widget Frame Fixes
+
+- Fixed drag direction math for CSS bottom/right positioning.
+- Clamped manual placement against panel height so the panel top cannot leave the viewport.
+- Added grab and grabbing cursors plus a header title that explains dragging.
+- Added `min-h-0` and overscroll containment to the panel and message list so chat history scrolls inside the widget.
+- Fixed resize direction so dragging the top-left handle down reduces panel height instead of pushing the frame out of bounds.
+
+Known gaps:
+- Previously saved bad positions may need a double-click reset on the floating button once after reloading.

@@ -84,6 +84,7 @@ export function ChatWidget() {
   const {
     frame,
     placement,
+    isDragging,
     startDrag,
     startResize,
     expandPanel,
@@ -315,7 +316,7 @@ export function ChatWidget() {
     >
       <div
         ref={panelRef}
-        className={`webprose-panel relative mb-3 flex origin-bottom-right flex-col overflow-hidden rounded-lg border shadow-2xl transition duration-200 ease-out ${
+        className={`webprose-panel relative mb-3 flex min-h-0 origin-bottom-right flex-col overflow-hidden rounded-lg border shadow-2xl transition duration-200 ease-out ${
           isOpen
             ? 'translate-y-0 scale-100 opacity-100'
             : 'pointer-events-none translate-y-3 scale-95 opacity-0'
@@ -338,8 +339,11 @@ export function ChatWidget() {
           <Grip className="h-3.5 w-3.5" />
         </button>
         <header
-          className="webprose-header flex h-14 shrink-0 cursor-move items-center justify-between border-b px-4 pl-9"
+          className={`webprose-header flex h-14 shrink-0 items-center justify-between border-b px-4 pl-9 ${
+            isDragging ? 'cursor-grabbing' : 'cursor-grab'
+          }`}
           onPointerDown={startDrag}
+          title="Drag to move"
         >
           <div className="flex min-w-0 items-center gap-3">
             <div className="webprose-mark grid h-8 w-8 shrink-0 place-items-center rounded-md text-white">
@@ -492,7 +496,7 @@ export function ChatWidget() {
 
         <div
           ref={scrollRef}
-          className="flex-1 space-y-4 overflow-y-auto px-4 py-4"
+          className="min-h-0 flex-1 space-y-4 overflow-y-auto overscroll-contain px-4 py-4"
           aria-live="polite"
         >
           {messages.map((message) => (
@@ -636,6 +640,7 @@ function useWidgetFrame(isOpen: boolean) {
     width: number;
     height: number;
   } | null>(() => readStoredFrame());
+  const [isDragging, setIsDragging] = useState(false);
   const frame = clampFrame(
     manualFrame ?? {
       right: 16,
@@ -722,18 +727,20 @@ function useWidgetFrame(isOpen: boolean) {
     const startFrame = frame;
 
     event.currentTarget.setPointerCapture(event.pointerId);
+    setIsDragging(true);
 
     function move(pointerEvent: PointerEvent) {
       const nextFrame = clampFrame({
         ...startFrame,
         right: startFrame.right - (pointerEvent.clientX - startX),
-        bottom: startFrame.bottom - (pointerEvent.clientY - startY),
+        bottom: startFrame.bottom + (pointerEvent.clientY - startY),
       });
       setManualFrame(nextFrame);
       storeFrame(nextFrame);
     }
 
     function end() {
+      setIsDragging(false);
       window.removeEventListener('pointermove', move);
       window.removeEventListener('pointerup', end);
     }
@@ -756,7 +763,7 @@ function useWidgetFrame(isOpen: boolean) {
       const nextFrame = clampFrame({
         ...startFrame,
         width: startFrame.width - (pointerEvent.clientX - startX),
-        height: startFrame.height - (pointerEvent.clientY - startY),
+        height: startFrame.height + (pointerEvent.clientY - startY),
       });
       setManualFrame(nextFrame);
       storeFrame(nextFrame);
@@ -795,6 +802,7 @@ function useWidgetFrame(isOpen: boolean) {
   return {
     frame,
     placement,
+    isDragging,
     startDrag,
     startResize,
     expandPanel,
@@ -826,7 +834,7 @@ function clampFrame(frame: {
     Math.min(MAX_PANEL_SIZE.height, viewportHeight - 120),
   );
   const maxRight = Math.max(16, viewportWidth - width - 16);
-  const maxBottom = Math.max(16, viewportHeight - 96);
+  const maxBottom = Math.max(16, viewportHeight - height - 96);
 
   return {
     width,
