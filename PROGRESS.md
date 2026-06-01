@@ -166,3 +166,13 @@ Known gaps:
 
 Known gaps:
 - Previously saved bad positions may need a double-click reset on the floating button once after reloading.
+
+## 2026-06-01 - Auto Placement Clamp
+
+- Clamped automatic obstacle-avoidance placement with the full rendered widget height.
+- Fixed drag-down behavior so dragging the header down moves the widget down.
+- Added a visible Drag grip label in the header so the movable region is obvious.
+- Shared viewport margin, panel gap, and floating button size constants for placement math.
+
+Known gaps:
+- A stale stored frame from an older build may still need one double-click reset.

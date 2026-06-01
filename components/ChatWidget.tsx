@@ -4,6 +4,7 @@ import {
   Copy,
   FileText,
   Grip,
+  GripHorizontal,
   MessageSquareText,
   Minimize2,
   MousePointer2,
@@ -56,6 +57,9 @@ const INITIAL_MESSAGE: WidgetMessage = {
 const DEFAULT_PANEL_SIZE = { width: 448, height: 640 };
 const MIN_PANEL_SIZE = { width: 360, height: 420 };
 const MAX_PANEL_SIZE = { width: 560, height: 760 };
+const PANEL_BUTTON_GAP = 12;
+const FAB_SIZE = 56;
+const VIEWPORT_MARGIN = 16;
 
 export function ChatWidget() {
   const [isOpen, setIsOpen] = useState(false);
@@ -346,6 +350,10 @@ export function ChatWidget() {
           title="Drag to move"
         >
           <div className="flex min-w-0 items-center gap-3">
+            <div className="hidden items-center gap-1 rounded-md border border-[#d9e4e2] bg-[#edf4f2] px-2 py-1 text-[11px] font-semibold text-[#4f5f72] dark:border-[#304258] dark:bg-[#1b2a3f] dark:text-[#b8c8c7] sm:flex">
+              <GripHorizontal className="h-3.5 w-3.5" />
+              Drag
+            </div>
             <div className="webprose-mark grid h-8 w-8 shrink-0 place-items-center rounded-md text-white">
               <Sparkles className="h-4 w-4" />
             </div>
@@ -671,7 +679,9 @@ function useWidgetFrame(isOpen: boolean) {
       const viewportHeight = window.innerHeight;
 
       if (viewportWidth < 520) {
-        setPlacement({ right: 16, bottom: 16 });
+        setPlacement(
+          clampPlacement({ right: 16, bottom: 16 }, frame, isOpen),
+        );
         return;
       }
 
@@ -685,26 +695,35 @@ function useWidgetFrame(isOpen: boolean) {
         const maxRight = Math.max(16, viewportWidth - panelWidth - gap);
         const fitsBesideObstacle = candidateRight <= maxRight;
 
-        setPlacement({
-          right: fitsBesideObstacle ? candidateRight : 16,
-          bottom: fitsBesideObstacle
-            ? 16
-            : Math.min(
-                Math.max(16, viewportHeight - obstacle.top + gap),
-                Math.max(16, viewportHeight - 240),
-              ),
-        });
+        setPlacement(
+          clampPlacement(
+            {
+              right: fitsBesideObstacle ? candidateRight : 16,
+              bottom: fitsBesideObstacle
+                ? 16
+                : Math.max(16, viewportHeight - obstacle.top + gap),
+            },
+            frame,
+            isOpen,
+          ),
+        );
         return;
       }
 
       const bottomDock = findBottomDock();
-      setPlacement({
-        right: 16,
-        bottom:
-          bottomDock && !isOpen
-            ? bottomDock + gap
-            : Math.max(16, bottomDock - buttonSize),
-      });
+      setPlacement(
+        clampPlacement(
+          {
+            right: 16,
+            bottom:
+              bottomDock && !isOpen
+                ? bottomDock + gap
+                : Math.max(16, bottomDock - buttonSize),
+          },
+          frame,
+          isOpen,
+        ),
+      );
     }
 
     updatePlacement();
@@ -733,7 +752,7 @@ function useWidgetFrame(isOpen: boolean) {
       const nextFrame = clampFrame({
         ...startFrame,
         right: startFrame.right - (pointerEvent.clientX - startX),
-        bottom: startFrame.bottom + (pointerEvent.clientY - startY),
+        bottom: startFrame.bottom - (pointerEvent.clientY - startY),
       });
       setManualFrame(nextFrame);
       storeFrame(nextFrame);
@@ -833,14 +852,49 @@ function clampFrame(frame: {
     Math.min(MIN_PANEL_SIZE.height, viewportHeight - 120),
     Math.min(MAX_PANEL_SIZE.height, viewportHeight - 120),
   );
-  const maxRight = Math.max(16, viewportWidth - width - 16);
-  const maxBottom = Math.max(16, viewportHeight - height - 96);
+  const maxRight = Math.max(
+    VIEWPORT_MARGIN,
+    viewportWidth - width - VIEWPORT_MARGIN,
+  );
+  const maxBottom = Math.max(
+    VIEWPORT_MARGIN,
+    viewportHeight -
+      height -
+      FAB_SIZE -
+      PANEL_BUTTON_GAP -
+      VIEWPORT_MARGIN,
+  );
 
   return {
     width,
     height,
-    right: clamp(frame.right, 16, maxRight),
-    bottom: clamp(frame.bottom, 16, maxBottom),
+    right: clamp(frame.right, VIEWPORT_MARGIN, maxRight),
+    bottom: clamp(frame.bottom, VIEWPORT_MARGIN, maxBottom),
+  };
+}
+
+function clampPlacement(
+  placement: { right: number; bottom: number },
+  frame: { width: number; height: number },
+  isOpen: boolean,
+) {
+  const viewportWidth = window.innerWidth;
+  const viewportHeight = window.innerHeight;
+  const renderedHeight = isOpen
+    ? frame.height + PANEL_BUTTON_GAP + FAB_SIZE
+    : FAB_SIZE;
+  const maxRight = Math.max(
+    VIEWPORT_MARGIN,
+    viewportWidth - frame.width - VIEWPORT_MARGIN,
+  );
+  const maxBottom = Math.max(
+    VIEWPORT_MARGIN,
+    viewportHeight - renderedHeight - VIEWPORT_MARGIN,
+  );
+
+  return {
+    right: clamp(placement.right, VIEWPORT_MARGIN, maxRight),
+    bottom: clamp(placement.bottom, VIEWPORT_MARGIN, maxBottom),
   };
 }
 
