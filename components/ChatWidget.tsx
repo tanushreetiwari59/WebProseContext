@@ -3,8 +3,7 @@ import {
   Check,
   Copy,
   FileText,
-  Grip,
-  GripHorizontal,
+  Maximize2,
   MessageSquareText,
   MousePointer2,
   Send,
@@ -14,6 +13,7 @@ import {
 } from 'lucide-react';
 import {
   KeyboardEvent,
+  MouseEvent as ReactMouseEvent,
   PointerEvent as ReactPointerEvent,
   useEffect,
   useRef,
@@ -91,8 +91,8 @@ export function ChatWidget() {
   const {
     frame,
     isDragging,
+    expandPanel,
     startDrag,
-    startResize,
     resetFrame,
   } = useWidgetFrame(isOpen);
 
@@ -328,6 +328,12 @@ export function ChatWidget() {
     window.localStorage.setItem('webprose.widgetDeactivated', 'true');
   }
 
+  function closeFromHeader(event: ReactMouseEvent<HTMLButtonElement>) {
+    event.preventDefault();
+    event.stopPropagation();
+    deactivateWidget();
+  }
+
   if (isDeactivated) return null;
 
   return (
@@ -353,27 +359,14 @@ export function ChatWidget() {
         aria-label="WebProse chat"
         aria-hidden={!isOpen}
       >
-        <button
-          type="button"
-          onPointerDown={startResize}
-          className="absolute left-1 top-1 z-10 grid h-7 w-7 cursor-nwse-resize place-items-center rounded-md text-[#6b7a86] opacity-60 transition hover:bg-[#edf4f2] hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-[#6a9d9a] dark:text-[#9db0b5] dark:hover:bg-[#1b2a3f]"
-          aria-label="Resize chat"
-          title="Drag to resize"
-        >
-          <Grip className="h-3.5 w-3.5" />
-        </button>
         <header
-          className={`webprose-header flex h-14 shrink-0 items-center justify-between border-b px-4 pl-9 ${
+          className={`webprose-header flex h-14 shrink-0 items-center justify-between border-b px-4 ${
             isDragging ? 'cursor-grabbing' : 'cursor-grab'
           }`}
           onPointerDown={startDrag}
           title="Drag to move"
         >
           <div className="flex min-w-0 items-center gap-3">
-            <div className="hidden items-center gap-1 rounded-md border border-[#d9e4e2] bg-[#edf4f2] px-2 py-1 text-[11px] font-semibold text-[#4f5f72] dark:border-[#304258] dark:bg-[#1b2a3f] dark:text-[#b8c8c7] sm:flex">
-              <GripHorizontal className="h-3.5 w-3.5" />
-              Drag
-            </div>
             <div className="webprose-mark grid h-8 w-8 shrink-0 place-items-center rounded-md text-white">
               <Sparkles className="h-4 w-4" />
             </div>
@@ -419,7 +412,20 @@ export function ChatWidget() {
             </button>
             <button
               type="button"
-              onClick={deactivateWidget}
+              onClick={(event) => {
+                event.preventDefault();
+                event.stopPropagation();
+                expandPanel();
+              }}
+              className="grid h-8 w-8 place-items-center rounded-md text-[#6b7a86] transition hover:bg-[#edf4f2] hover:text-[#172033] focus:outline-none focus:ring-2 focus:ring-[#6a9d9a] dark:text-[#9db0b5] dark:hover:bg-[#1b2a3f] dark:hover:text-[#edf4f2]"
+              aria-label="Resize chat"
+              title="Resize chat"
+            >
+              <Maximize2 className="h-4 w-4" />
+            </button>
+            <button
+              type="button"
+              onClick={closeFromHeader}
               className="grid h-8 w-8 place-items-center rounded-md text-[#6b7a86] transition hover:bg-[#edf4f2] hover:text-[#172033] focus:outline-none focus:ring-2 focus:ring-[#6a9d9a] dark:text-[#9db0b5] dark:hover:bg-[#1b2a3f] dark:hover:text-[#edf4f2]"
               aria-label="Close chat on this page"
               title="Close"
@@ -770,34 +776,20 @@ function useWidgetFrame(isOpen: boolean) {
     window.addEventListener('pointerup', end, { once: true });
   }
 
-  function startResize(event: ReactPointerEvent<HTMLElement>) {
-    event.preventDefault();
-    event.stopPropagation();
-
-    const startX = event.clientX;
-    const startY = event.clientY;
-    const startFrame = frame;
-
-    event.currentTarget.setPointerCapture(event.pointerId);
-
-    function move(pointerEvent: PointerEvent) {
-      const nextFrame = clampFrame({
-        ...startFrame,
-        width: startFrame.width - (pointerEvent.clientX - startX),
-        height: startFrame.height + (pointerEvent.clientY - startY),
-        left: startFrame.left + (pointerEvent.clientX - startX),
-      });
-      setManualFrame(nextFrame);
-      storeFrame(nextFrame);
-    }
-
-    function end() {
-      window.removeEventListener('pointermove', move);
-      window.removeEventListener('pointerup', end);
-    }
-
-    window.addEventListener('pointermove', move);
-    window.addEventListener('pointerup', end, { once: true });
+  function expandPanel() {
+    const nextFrame = clampFrame({
+      ...frame,
+      width:
+        frame.width >= MAX_PANEL_SIZE.width - 20
+          ? DEFAULT_PANEL_SIZE.width
+          : MAX_PANEL_SIZE.width,
+      height:
+        frame.height >= MAX_PANEL_SIZE.height - 20
+          ? DEFAULT_PANEL_SIZE.height
+          : MAX_PANEL_SIZE.height,
+    });
+    setManualFrame(nextFrame);
+    storeFrame(nextFrame);
   }
 
   function resetFrame() {
@@ -808,8 +800,8 @@ function useWidgetFrame(isOpen: boolean) {
   return {
     frame,
     isDragging,
+    expandPanel,
     startDrag,
-    startResize,
     resetFrame,
   };
 }

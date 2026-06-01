@@ -206,3 +206,14 @@ Known gaps:
 
 Known gaps:
 - Reopening a closed widget still requires the extension popup action.
+
+## 2026-06-01 - Popup and Header Control Fix
+
+- Fixed the chat header close button so it stops the page widget instead of being intercepted by header drag handling.
+- Removed the visible top-left drag/resize affordance from the chat panel.
+- Added a single arrow resize toggle in the header for expanding or returning the chat panel size.
+- Closed the extension popup automatically after the popup opens or hides the chat on the current page.
+- Rebuilt the unpacked extension output.
+
+Known gaps:
+- Users must reload the unpacked extension in `chrome://extensions` to pick up the rebuilt output.

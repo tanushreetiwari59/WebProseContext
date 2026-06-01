@@ -63,13 +63,15 @@ function App() {
             type="button"
             onClick={() => {
               setPageMessage('');
-              void openChatOnCurrentPage().catch((error) =>
-                setPageMessage(
-                  error instanceof Error
-                    ? error.message
-                    : 'Could not open chat on this page.',
-                ),
-              );
+              void openChatOnCurrentPage()
+                .then(() => window.close())
+                .catch((error) =>
+                  setPageMessage(
+                    error instanceof Error
+                      ? error.message
+                      : 'Could not open chat on this page.',
+                  ),
+                );
             }}
             className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-md bg-[#2f6f73] px-3 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-[#285f62] focus:outline-none focus:ring-2 focus:ring-[#6a9d9a]"
           >
@@ -83,7 +85,7 @@ function App() {
             onClick={() => {
               setPageMessage('');
               void deactivateChatOnCurrentPage()
-                .then(() => setPageMessage('Chat hidden on this page.'))
+                .then(() => window.close())
                 .catch((error) =>
                   setPageMessage(
                     error instanceof Error
