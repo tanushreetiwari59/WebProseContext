@@ -70,3 +70,16 @@ Known gaps:
 
 Known gaps:
 - Action output quality requires live model validation with a real API key.
+
+## 2026-06-01 - Phase 6
+
+- Added an inline model picker to the widget header.
+- Persisted model changes through the shared local settings helper.
+- Added first-run guidance that opens settings when no API key is saved.
+- Added copy-to-clipboard controls for messages and code blocks.
+- Added retry controls for failed assistant responses.
+- Reviewed manifest permissions. Active permissions are `storage`, Anthropic and OpenAI host access, and optional exact-origin host access for custom OpenAI-compatible providers.
+- Added a README with local run, unpacked loading, key setup, supported providers, and privacy notes.
+
+Known gaps:
+- End-to-end provider validation still requires a real API key.

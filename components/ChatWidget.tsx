@@ -1,5 +1,7 @@
 import {
   Bot,
+  Check,
+  Copy,
   FileText,
   MessageSquareText,
   Minimize2,
@@ -20,12 +22,17 @@ import {
 } from '@/lib/messaging/runtime';
 import type { ChatMessage } from '@/types/chat';
 import { QUICK_ACTIONS, REWRITE_TONES, type QuickAction } from './quickActions';
+import { getSettings, setSettings } from '@/lib/storage/settings';
+import type { AppSettings } from '@/types/settings';
+import { browser } from 'wxt/browser';
 
 interface WidgetMessage {
   id: string;
   role: 'user' | 'assistant';
   content: string;
   status?: 'streaming' | 'error';
+  retryContent?: string;
+  retryAttachContext?: boolean;
 }
 
 const INITIAL_MESSAGE: WidgetMessage = {
@@ -47,17 +54,28 @@ export function ChatWidget() {
     null,
   );
   const [rewriteTone, setRewriteTone] = useState(REWRITE_TONES[0]);
+  const [settings, setSettingsState] = useState<AppSettings | null>(null);
+  const [copiedMessageId, setCopiedMessageId] = useState<string | null>(null);
   const [activeRequestId, setActiveRequestId] = useState<string | null>(null);
   const activeRequestIdRef = useRef<string | null>(null);
   const activeAssistantIdRef = useRef<string | null>(null);
+  const activeRetryRef = useRef<{
+    content: string;
+    attachContext: boolean;
+  } | null>(null);
   const panelRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
+    void refreshSettings();
+  }, []);
+
+  useEffect(() => {
     if (!isOpen) return;
 
     setContextPreview(extractPageContext({ tokenBudget: 500 }));
+    void refreshSettings();
     const timer = window.setTimeout(() => inputRef.current?.focus(), 120);
     return () => window.clearTimeout(timer);
   }, [isOpen]);
@@ -101,6 +119,23 @@ export function ChatWidget() {
   }
 
   async function startChat(content: string, attachContext: boolean) {
+    const currentSettings = await getSettings();
+    setSettingsState(currentSettings);
+
+    if (!currentSettings.apiKey) {
+      setMessages((current) => [
+        ...current,
+        {
+          id: crypto.randomUUID(),
+          role: 'assistant',
+          content:
+            'Add an API key in settings before starting a chat. Your key is stored on this device.',
+          status: 'error',
+        },
+      ]);
+      return;
+    }
+
     const userMessage: WidgetMessage = {
       id: crypto.randomUUID(),
       role: 'user',
@@ -126,6 +161,7 @@ export function ChatWidget() {
     setActiveRequestId(requestId);
     activeRequestIdRef.current = requestId;
     activeAssistantIdRef.current = assistantId;
+    activeRetryRef.current = { content, attachContext };
 
     const response = await sendRuntimeMessage({
       type: MESSAGE_TYPES.START_CHAT,
@@ -180,6 +216,7 @@ export function ChatWidget() {
 
   function completeWithError(error: string) {
     const assistantId = activeAssistantIdRef.current;
+    const retry = activeRetryRef.current;
     setMessages((current) =>
       current.map((message) =>
         message.id === assistantId
@@ -187,6 +224,8 @@ export function ChatWidget() {
               ...message,
               content: error,
               status: 'error',
+              retryContent: retry?.content,
+              retryAttachContext: retry?.attachContext,
             }
           : message,
       ),
@@ -207,6 +246,31 @@ export function ChatWidget() {
     setActiveRequestId(null);
     activeRequestIdRef.current = null;
     activeAssistantIdRef.current = null;
+    activeRetryRef.current = null;
+  }
+
+  async function refreshSettings() {
+    const nextSettings = await getSettings();
+    setSettingsState(nextSettings);
+  }
+
+  async function updateModel(model: string) {
+    if (!settings) return;
+
+    const nextSettings = { ...settings, model };
+    setSettingsState(nextSettings);
+    await setSettings(nextSettings);
+  }
+
+  async function copyMessage(message: WidgetMessage) {
+    await navigator.clipboard.writeText(message.content);
+    setCopiedMessageId(message.id);
+    window.setTimeout(() => setCopiedMessageId(null), 1200);
+  }
+
+  async function retryMessage(message: WidgetMessage) {
+    if (!message.retryContent || activeRequestId) return;
+    await startChat(message.retryContent, Boolean(message.retryAttachContext));
   }
 
   return (
@@ -232,11 +296,26 @@ export function ChatWidget() {
                 WebProse Context
               </h2>
               <p className="truncate text-xs text-slate-500 dark:text-slate-400">
-                {contextEnabled ? 'Page context on' : 'Page context off'}
+                {settings?.model || 'No model selected'}
               </p>
             </div>
           </div>
           <div className="flex items-center gap-1">
+            <select
+              value={settings?.model ?? ''}
+              onChange={(event) => updateModel(event.target.value)}
+              className="hidden max-w-32 rounded-md border border-slate-200 bg-white px-2 py-1 text-xs font-medium text-slate-700 outline-none focus:border-sky-500 focus:ring-2 focus:ring-sky-200 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-200 dark:focus:ring-sky-900 sm:block"
+              aria-label="Model"
+            >
+              <option value={settings?.model ?? ''}>
+                {settings?.model || 'Model'}
+              </option>
+              {modelSuggestions(settings).map((model) => (
+                <option key={model} value={model}>
+                  {model}
+                </option>
+              ))}
+            </select>
             <button
               type="button"
               onClick={() => setContextEnabled((current) => !current)}
@@ -301,6 +380,18 @@ export function ChatWidget() {
         </div>
 
         <div className="shrink-0 border-b border-slate-200 px-4 py-3 dark:border-slate-800">
+          {!settings?.apiKey ? (
+            <div className="mb-3 flex items-center justify-between gap-3 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-900 dark:border-amber-900 dark:bg-amber-950 dark:text-amber-100">
+              <span>Add an API key to start chatting.</span>
+              <button
+                type="button"
+                onClick={() => browser.runtime.openOptionsPage()}
+                className="shrink-0 rounded-md bg-amber-900 px-2 py-1 font-semibold text-white hover:bg-amber-800 focus:outline-none focus:ring-2 focus:ring-amber-500 dark:bg-amber-200 dark:text-amber-950 dark:hover:bg-amber-100"
+              >
+                Settings
+              </button>
+            </div>
+          ) : null}
           <div className="flex items-center gap-2 overflow-x-auto pb-1">
             {QUICK_ACTIONS.map((action) => {
               const Icon = action.icon;
@@ -361,7 +452,7 @@ export function ChatWidget() {
                 )}
               </div>
               <div
-                className={`max-w-[18rem] rounded-lg px-3 py-2 text-sm leading-6 ${
+              className={`max-w-[18rem] rounded-lg px-3 py-2 text-sm leading-6 ${
                   message.role === 'user'
                     ? 'bg-slate-900 text-white dark:bg-slate-100 dark:text-slate-950'
                     : message.status === 'error'
@@ -376,6 +467,32 @@ export function ChatWidget() {
                     Starting response...
                   </span>
                 )}
+                <div className="mt-2 flex items-center gap-1">
+                  {message.content ? (
+                    <button
+                      type="button"
+                      onClick={() => copyMessage(message)}
+                      className="inline-grid h-7 w-7 place-items-center rounded-md text-current opacity-60 transition hover:bg-black/10 hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-sky-500 dark:hover:bg-white/10"
+                      aria-label="Copy message"
+                      title="Copy message"
+                    >
+                      {copiedMessageId === message.id ? (
+                        <Check className="h-3.5 w-3.5" />
+                      ) : (
+                        <Copy className="h-3.5 w-3.5" />
+                      )}
+                    </button>
+                  ) : null}
+                  {message.status === 'error' && message.retryContent ? (
+                    <button
+                      type="button"
+                      onClick={() => retryMessage(message)}
+                      className="rounded-md px-2 py-1 text-xs font-semibold text-current opacity-70 transition hover:bg-black/10 hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-sky-500 dark:hover:bg-white/10"
+                    >
+                      Retry
+                    </button>
+                  ) : null}
+                </div>
               </div>
             </article>
           ))}
@@ -445,4 +562,21 @@ function toChatMessages(messages: WidgetMessage[]): ChatMessage[] {
       role: message.role,
       content: message.content,
     }));
+}
+
+function modelSuggestions(settings: AppSettings | null): string[] {
+  if (!settings) return [];
+
+  const suggestions =
+    settings.provider === 'anthropic'
+      ? [
+          'claude-3-5-sonnet-latest',
+          'claude-3-5-haiku-latest',
+          settings.model,
+        ]
+      : ['gpt-4o-mini', 'gpt-4o', settings.model];
+
+  return Array.from(new Set(suggestions.filter(Boolean))).filter(
+    (model) => model !== settings.model,
+  );
 }
