@@ -186,3 +186,13 @@ Known gaps:
 
 Known gaps:
 - Deactivation is per page origin because it uses page local storage.
+
+## 2026-06-01 - Direct Drag Coordinates
+
+- Switched manual widget positioning from CSS right/bottom math to direct left/top coordinates.
+- Dragging now follows pointer movement naturally in both axes.
+- Kept viewport clamping after movement and resize.
+- Updated stored frame shape to use left/top with width/height.
+
+Known gaps:
+- Old saved right/bottom frame data will be ignored by the new clamp and may reset placement.

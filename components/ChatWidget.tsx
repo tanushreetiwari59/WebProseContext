@@ -92,7 +92,6 @@ export function ChatWidget() {
   const scrollRef = useRef<HTMLDivElement>(null);
   const {
     frame,
-    placement,
     isDragging,
     startDrag,
     startResize,
@@ -338,8 +337,8 @@ export function ChatWidget() {
     <div
       className="fixed z-[2147483647] font-sans text-[#172033] dark:text-[#edf4f2]"
       style={{
-        right: placement.right,
-        bottom: placement.bottom,
+        left: frame.left,
+        top: frame.top,
       }}
     >
       <div
@@ -676,35 +675,32 @@ function toChatMessages(messages: WidgetMessage[]): ChatMessage[] {
 
 function useWidgetFrame(isOpen: boolean) {
   const [manualFrame, setManualFrame] = useState<{
-    right: number;
-    bottom: number;
+    left: number;
+    top: number;
     width: number;
     height: number;
   } | null>(() => readStoredFrame());
   const [isDragging, setIsDragging] = useState(false);
   const frame = clampFrame(
     manualFrame ?? {
-      right: 16,
-      bottom: 16,
       ...DEFAULT_PANEL_SIZE,
+      ...defaultFramePosition(DEFAULT_PANEL_SIZE),
     },
   );
-  const [placement, setPlacement] = useState({ right: 16, bottom: 16 });
 
   useEffect(() => {
     function updatePlacement() {
       if (manualFrame) {
         const nextFrame = clampFrame(manualFrame);
         if (
-          nextFrame.right !== manualFrame.right ||
-          nextFrame.bottom !== manualFrame.bottom ||
+          nextFrame.left !== manualFrame.left ||
+          nextFrame.top !== manualFrame.top ||
           nextFrame.width !== manualFrame.width ||
           nextFrame.height !== manualFrame.height
         ) {
           setManualFrame(nextFrame);
           storeFrame(nextFrame);
         }
-        setPlacement({ right: nextFrame.right, bottom: nextFrame.bottom });
         return;
       }
 
@@ -712,8 +708,11 @@ function useWidgetFrame(isOpen: boolean) {
       const viewportHeight = window.innerHeight;
 
       if (viewportWidth < 520) {
-        setPlacement(
-          clampPlacement({ right: 16, bottom: 16 }, frame, isOpen),
+        setManualFrame(
+          clampFrame({
+            ...frame,
+            ...defaultFramePosition(frame),
+          }),
         );
         return;
       }
@@ -728,34 +727,36 @@ function useWidgetFrame(isOpen: boolean) {
         const maxRight = Math.max(16, viewportWidth - panelWidth - gap);
         const fitsBesideObstacle = candidateRight <= maxRight;
 
-        setPlacement(
-          clampPlacement(
-            {
-              right: fitsBesideObstacle ? candidateRight : 16,
-              bottom: fitsBesideObstacle
-                ? 16
-                : Math.max(16, viewportHeight - obstacle.top + gap),
-            },
-            frame,
-            isOpen,
-          ),
+        const nextPosition = placementToFramePosition(
+          {
+            right: fitsBesideObstacle ? candidateRight : 16,
+            bottom: fitsBesideObstacle
+              ? 16
+              : Math.max(16, viewportHeight - obstacle.top + gap),
+          },
+          frame,
+          isOpen,
         );
+        setManualFrame(clampFrame({ ...frame, ...nextPosition }));
         return;
       }
 
       const bottomDock = findBottomDock();
-      setPlacement(
-        clampPlacement(
+      setManualFrame(
+        clampFrame({
+          ...frame,
+          ...placementToFramePosition(
           {
             right: 16,
             bottom:
               bottomDock && !isOpen
                 ? bottomDock + gap
                 : Math.max(16, bottomDock - buttonSize),
-          },
-          frame,
-          isOpen,
-        ),
+            },
+            frame,
+            isOpen,
+          ),
+        }),
       );
     }
 
@@ -784,8 +785,8 @@ function useWidgetFrame(isOpen: boolean) {
     function move(pointerEvent: PointerEvent) {
       const nextFrame = clampFrame({
         ...startFrame,
-        right: startFrame.right - (pointerEvent.clientX - startX),
-        bottom: startFrame.bottom - (pointerEvent.clientY - startY),
+        left: startFrame.left + (pointerEvent.clientX - startX),
+        top: startFrame.top + (pointerEvent.clientY - startY),
       });
       setManualFrame(nextFrame);
       storeFrame(nextFrame);
@@ -816,6 +817,7 @@ function useWidgetFrame(isOpen: boolean) {
         ...startFrame,
         width: startFrame.width - (pointerEvent.clientX - startX),
         height: startFrame.height + (pointerEvent.clientY - startY),
+        left: startFrame.left + (pointerEvent.clientX - startX),
       });
       setManualFrame(nextFrame);
       storeFrame(nextFrame);
@@ -853,7 +855,6 @@ function useWidgetFrame(isOpen: boolean) {
 
   return {
     frame,
-    placement,
     isDragging,
     startDrag,
     startResize,
@@ -868,8 +869,8 @@ function shouldIgnoreMove(target: EventTarget | null): boolean {
 }
 
 function clampFrame(frame: {
-  right: number;
-  bottom: number;
+  left: number;
+  top: number;
   width: number;
   height: number;
 }) {
@@ -885,28 +886,24 @@ function clampFrame(frame: {
     Math.min(MIN_PANEL_SIZE.height, viewportHeight - 120),
     Math.min(MAX_PANEL_SIZE.height, viewportHeight - 120),
   );
-  const maxRight = Math.max(
+  const maxLeft = Math.max(
     VIEWPORT_MARGIN,
     viewportWidth - width - VIEWPORT_MARGIN,
   );
-  const maxBottom = Math.max(
+  const maxTop = Math.max(
     VIEWPORT_MARGIN,
-    viewportHeight -
-      height -
-      FAB_SIZE -
-      PANEL_BUTTON_GAP -
-      VIEWPORT_MARGIN,
+    viewportHeight - renderedHeight(height) - VIEWPORT_MARGIN,
   );
 
   return {
     width,
     height,
-    right: clamp(frame.right, VIEWPORT_MARGIN, maxRight),
-    bottom: clamp(frame.bottom, VIEWPORT_MARGIN, maxBottom),
+    left: clamp(frame.left, VIEWPORT_MARGIN, maxLeft),
+    top: clamp(frame.top, VIEWPORT_MARGIN, maxTop),
   };
 }
 
-function clampPlacement(
+function placementToFramePosition(
   placement: { right: number; bottom: number },
   frame: { width: number; height: number },
   isOpen: boolean,
@@ -916,19 +913,22 @@ function clampPlacement(
   const renderedHeight = isOpen
     ? frame.height + PANEL_BUTTON_GAP + FAB_SIZE
     : FAB_SIZE;
-  const maxRight = Math.max(
-    VIEWPORT_MARGIN,
-    viewportWidth - frame.width - VIEWPORT_MARGIN,
-  );
-  const maxBottom = Math.max(
-    VIEWPORT_MARGIN,
-    viewportHeight - renderedHeight - VIEWPORT_MARGIN,
-  );
-
   return {
-    right: clamp(placement.right, VIEWPORT_MARGIN, maxRight),
-    bottom: clamp(placement.bottom, VIEWPORT_MARGIN, maxBottom),
+    left: viewportWidth - frame.width - placement.right,
+    top: viewportHeight - renderedHeight - placement.bottom,
   };
+}
+
+function defaultFramePosition(frame: { width: number; height: number }) {
+  return placementToFramePosition(
+    { right: VIEWPORT_MARGIN, bottom: VIEWPORT_MARGIN },
+    frame,
+    true,
+  );
+}
+
+function renderedHeight(panelHeight: number): number {
+  return panelHeight + PANEL_BUTTON_GAP + FAB_SIZE;
 }
 
 function clamp(value: number, min: number, max: number): number {
@@ -940,8 +940,8 @@ function readStoredFrame() {
     const stored = window.localStorage.getItem('webprose.widgetFrame');
     if (!stored) return null;
     return clampFrame(JSON.parse(stored) as {
-      right: number;
-      bottom: number;
+      left: number;
+      top: number;
       width: number;
       height: number;
     });
@@ -951,8 +951,8 @@ function readStoredFrame() {
 }
 
 function storeFrame(frame: {
-  right: number;
-  bottom: number;
+  left: number;
+  top: number;
   width: number;
   height: number;
 }) {
