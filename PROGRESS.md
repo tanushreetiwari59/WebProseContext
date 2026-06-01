@@ -59,3 +59,14 @@ Known gaps:
 
 Known gaps:
 - Live provider behavior requires real API keys. Typecheck and production build pass, but streaming was not exercised against a live model in this environment.
+
+## 2026-06-01 - Phase 5
+
+- Added quick actions for Summarize, Explain selection, Key points, Rewrite, and Translate.
+- Added a rewrite tone selector used by the Rewrite action.
+- Centralized quick actions in one config array with label, icon, scope, and prompt template.
+- Reused the same streaming chat pipeline as normal messages.
+- Attached fresh page context when a quick action is triggered, including selection when present.
+
+Known gaps:
+- Action output quality requires live model validation with a real API key.

@@ -19,6 +19,7 @@ import {
   sendRuntimeMessage,
 } from '@/lib/messaging/runtime';
 import type { ChatMessage } from '@/types/chat';
+import { QUICK_ACTIONS, REWRITE_TONES, type QuickAction } from './quickActions';
 
 interface WidgetMessage {
   id: string;
@@ -45,6 +46,7 @@ export function ChatWidget() {
   const [contextPreview, setContextPreview] = useState<PageContext | null>(
     null,
   );
+  const [rewriteTone, setRewriteTone] = useState(REWRITE_TONES[0]);
   const [activeRequestId, setActiveRequestId] = useState<string | null>(null);
   const activeRequestIdRef = useRef<string | null>(null);
   const activeAssistantIdRef = useRef<string | null>(null);
@@ -87,12 +89,24 @@ export function ChatWidget() {
     const content = input.trim();
     if (!content || activeRequestId) return;
 
+    setInput('');
+    await startChat(content, contextEnabled);
+  }
+
+  async function runQuickAction(action: QuickAction) {
+    if (activeRequestId) return;
+
+    const context = extractPageContext({ tokenBudget: 3000 });
+    await startChat(action.buildPrompt(context, rewriteTone), true);
+  }
+
+  async function startChat(content: string, attachContext: boolean) {
     const userMessage: WidgetMessage = {
       id: crypto.randomUUID(),
       role: 'user',
       content,
     };
-    const attachedContext = contextEnabled
+    const attachedContext = attachContext
       ? extractPageContext({ tokenBudget: 3000 })
       : null;
     const assistantId = crypto.randomUUID();
@@ -108,7 +122,6 @@ export function ChatWidget() {
         status: 'streaming',
       },
     ]);
-    setInput('');
     setIsThinking(true);
     setActiveRequestId(requestId);
     activeRequestIdRef.current = requestId;
@@ -285,6 +298,41 @@ export function ChatWidget() {
               No page context attached
             </span>
           )}
+        </div>
+
+        <div className="shrink-0 border-b border-slate-200 px-4 py-3 dark:border-slate-800">
+          <div className="flex items-center gap-2 overflow-x-auto pb-1">
+            {QUICK_ACTIONS.map((action) => {
+              const Icon = action.icon;
+              return (
+                <button
+                  key={action.id}
+                  type="button"
+                  onClick={() => runQuickAction(action)}
+                  disabled={Boolean(activeRequestId)}
+                  className="inline-flex shrink-0 items-center gap-1.5 rounded-md border border-slate-200 bg-white px-2.5 py-1.5 text-xs font-medium text-slate-700 shadow-sm transition hover:border-slate-300 hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-sky-500 disabled:cursor-not-allowed disabled:opacity-50 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-200 dark:hover:border-slate-700 dark:hover:bg-slate-800"
+                  title={action.label}
+                >
+                  <Icon className="h-3.5 w-3.5" />
+                  {action.label}
+                </button>
+              );
+            })}
+            <label className="ml-auto inline-flex shrink-0 items-center gap-2 text-xs font-medium text-slate-500 dark:text-slate-400">
+              Tone
+              <select
+                value={rewriteTone}
+                onChange={(event) => setRewriteTone(event.target.value)}
+                className="rounded-md border border-slate-200 bg-white px-2 py-1 text-xs font-medium text-slate-700 outline-none focus:border-sky-500 focus:ring-2 focus:ring-sky-200 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-200 dark:focus:ring-sky-900"
+              >
+                {REWRITE_TONES.map((tone) => (
+                  <option key={tone} value={tone}>
+                    {tone}
+                  </option>
+                ))}
+              </select>
+            </label>
+          </div>
         </div>
 
         <div
