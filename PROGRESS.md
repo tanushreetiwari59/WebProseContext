@@ -23,3 +23,14 @@ Known gaps:
 
 Known gaps:
 - Connection tests require real user API keys and provider access. The code path builds and typechecks, but no live provider key was available in this environment.
+
+## 2026-06-01 - Phase 2
+
+- Replaced the hidden content-script probe with a floating chat button and anchored chat panel inside the WXT Shadow DOM.
+- Added a keyboard-accessible composer with Esc to close, Enter to send, and Shift+Enter for new lines.
+- Added Markdown rendering for assistant and user messages, including links, lists, inline code, and fenced code blocks.
+- Added a fake echo assistant response so the full message flow works without an API key.
+- Kept styling isolated through `cssInjectionMode: "ui"` and the shadow root.
+
+Known gaps:
+- Cross-site visual checks need to be done in a browser with the unpacked extension loaded. Typecheck and production build pass in this environment.
