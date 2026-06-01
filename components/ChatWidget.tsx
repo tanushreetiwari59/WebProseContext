@@ -15,7 +15,11 @@ import { KeyboardEvent, useEffect, useRef, useState } from 'react';
 import { MarkdownMessage } from './MarkdownMessage';
 import { extractPageContext } from '@/lib/context/extractPageContext';
 import type { PageContext } from '@/types/page-context';
-import { MESSAGE_TYPES, type RuntimeEvent } from '@/types/messaging';
+import {
+  MESSAGE_TYPES,
+  OPEN_WIDGET_EVENT,
+  type RuntimeEvent,
+} from '@/types/messaging';
 import {
   addRuntimeEventListener,
   sendRuntimeMessage,
@@ -25,7 +29,6 @@ import { QUICK_ACTIONS, REWRITE_TONES, type QuickAction } from './quickActions';
 import { getSettings, setSettings } from '@/lib/storage/settings';
 import type { AppSettings } from '@/types/settings';
 import { openSettingsPage } from '@/lib/settingsPage';
-import { browser } from 'wxt/browser';
 
 interface WidgetMessage {
   id: string;
@@ -98,15 +101,12 @@ export function ChatWidget() {
   }, []);
 
   useEffect(() => {
-    const listener = (message: { type?: string }) => {
-      if (message.type !== MESSAGE_TYPES.OPEN_WIDGET) return undefined;
-
+    const listener = () => {
       setIsOpen(true);
-      return { ok: true };
     };
 
-    browser.runtime.onMessage.addListener(listener);
-    return () => browser.runtime.onMessage.removeListener(listener);
+    window.addEventListener(OPEN_WIDGET_EVENT, listener);
+    return () => window.removeEventListener(OPEN_WIDGET_EVENT, listener);
   }, []);
 
   useEffect(() => {

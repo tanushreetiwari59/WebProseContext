@@ -6,7 +6,7 @@ export default defineConfig({
   manifest: {
     name: 'WebProse Context',
     description: 'Page-aware BYOK AI chat assistant.',
-    permissions: ['storage'],
+    permissions: ['storage', 'activeTab', 'scripting'],
     host_permissions: [
       'https://api.anthropic.com/*',
       'https://api.openai.com/*',

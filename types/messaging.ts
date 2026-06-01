@@ -13,6 +13,8 @@ export const MESSAGE_TYPES = {
   CHAT_ERROR: 'webprose:chat-error',
 } as const;
 
+export const OPEN_WIDGET_EVENT = 'webprose:open-widget';
+
 export interface GetSettingsStatusRequest {
   type: typeof MESSAGE_TYPES.GET_SETTINGS_STATUS;
 }

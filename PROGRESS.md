@@ -124,3 +124,13 @@ Known gaps:
 
 Known gaps:
 - Restricted browser pages still cannot run extension content scripts by design.
+
+## 2026-06-01 - On-Demand Widget Injection
+
+- Added `activeTab` and `scripting` permissions so the popup can inject the content script into the active tab when it is missing.
+- Changed the popup chat opener to try messaging first, inject the content script if needed, then retry opening the widget.
+- Moved the widget-open message listener into the content script entrypoint to avoid React mount timing races.
+- Kept restricted page detection for browser, extension, Web Store, and developer tool pages.
+
+Known gaps:
+- Chrome still blocks content scripts on restricted browser-owned pages by design.
