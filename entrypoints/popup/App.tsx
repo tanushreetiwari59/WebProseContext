@@ -1,5 +1,6 @@
 import {
   ExternalLink,
+  EyeOff,
   Loader2,
   MessageSquareText,
   Settings,
@@ -9,7 +10,10 @@ import { useEffect, useState } from 'react';
 import { openSettingsPage } from '@/lib/settingsPage';
 import { sendRuntimeMessage } from '@/lib/messaging/runtime';
 import { MESSAGE_TYPES, type SettingsStatusResponse } from '@/types/messaging';
-import { openChatOnCurrentPage } from '@/lib/pageWidget';
+import {
+  deactivateChatOnCurrentPage,
+  openChatOnCurrentPage,
+} from '@/lib/pageWidget';
 
 function App() {
   const [status, setStatus] = useState<SettingsStatusResponse | null>(null);
@@ -71,6 +75,27 @@ function App() {
           >
             <MessageSquareText className="h-4 w-4" />
             Open chat on this page
+          </button>
+        ) : null}
+        {isReady ? (
+          <button
+            type="button"
+            onClick={() => {
+              setPageMessage('');
+              void deactivateChatOnCurrentPage()
+                .then(() => setPageMessage('Chat hidden on this page.'))
+                .catch((error) =>
+                  setPageMessage(
+                    error instanceof Error
+                      ? error.message
+                      : 'Could not hide chat on this page.',
+                  ),
+                );
+            }}
+            className="mt-3 inline-flex w-full items-center justify-center gap-2 rounded-md border border-[#c7d6d2] bg-[#fbfaf7] px-3 py-2 text-sm font-semibold text-[#29364a] shadow-sm transition hover:bg-[#edf4f2] focus:outline-none focus:ring-2 focus:ring-[#6a9d9a] dark:border-[#3b5165] dark:bg-[#101827] dark:text-[#edf4f2] dark:hover:bg-[#172033]"
+          >
+            <EyeOff className="h-4 w-4" />
+            Hide chat on this page
           </button>
         ) : null}
         <button

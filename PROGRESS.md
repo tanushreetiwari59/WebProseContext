@@ -176,3 +176,13 @@ Known gaps:
 
 Known gaps:
 - A stale stored frame from an older build may still need one double-click reset.
+
+## 2026-06-01 - Page Deactivation
+
+- Added a deactivate control inside the chat header that hides the widget on the current page.
+- Added a popup action to hide the widget on the current page.
+- The deactivated state is stored in page local storage.
+- Opening chat from the popup reactivates the widget on that page.
+
+Known gaps:
+- Deactivation is per page origin because it uses page local storage.

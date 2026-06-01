@@ -5,6 +5,7 @@ import type { PageContext } from './page-context';
 export const MESSAGE_TYPES = {
   GET_SETTINGS_STATUS: 'webprose:get-settings-status',
   OPEN_WIDGET: 'webprose:open-widget',
+  DEACTIVATE_WIDGET: 'webprose:deactivate-widget',
   TEST_CONNECTION: 'webprose:test-connection',
   START_CHAT: 'webprose:start-chat',
   STOP_CHAT: 'webprose:stop-chat',
@@ -14,6 +15,7 @@ export const MESSAGE_TYPES = {
 } as const;
 
 export const OPEN_WIDGET_EVENT = 'webprose:open-widget';
+export const DEACTIVATE_WIDGET_EVENT = 'webprose:deactivate-widget';
 
 export interface GetSettingsStatusRequest {
   type: typeof MESSAGE_TYPES.GET_SETTINGS_STATUS;
@@ -30,6 +32,10 @@ export interface SettingsStatusResponse {
 
 export interface OpenWidgetRequest {
   type: typeof MESSAGE_TYPES.OPEN_WIDGET;
+}
+
+export interface DeactivateWidgetRequest {
+  type: typeof MESSAGE_TYPES.DEACTIVATE_WIDGET;
 }
 
 export interface TestConnectionRequest {

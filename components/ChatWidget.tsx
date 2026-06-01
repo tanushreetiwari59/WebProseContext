@@ -5,6 +5,7 @@ import {
   FileText,
   Grip,
   GripHorizontal,
+  EyeOff,
   MessageSquareText,
   Minimize2,
   MousePointer2,
@@ -25,6 +26,7 @@ import { extractPageContext } from '@/lib/context/extractPageContext';
 import type { PageContext } from '@/types/page-context';
 import {
   MESSAGE_TYPES,
+  DEACTIVATE_WIDGET_EVENT,
   OPEN_WIDGET_EVENT,
   type RuntimeEvent,
 } from '@/types/messaging';
@@ -63,6 +65,9 @@ const VIEWPORT_MARGIN = 16;
 
 export function ChatWidget() {
   const [isOpen, setIsOpen] = useState(false);
+  const [isDeactivated, setIsDeactivated] = useState(() =>
+    window.localStorage.getItem('webprose.widgetDeactivated') === 'true',
+  );
   const [input, setInput] = useState('');
   const [messages, setMessages] = useState<WidgetMessage[]>([
     INITIAL_MESSAGE,
@@ -126,11 +131,22 @@ export function ChatWidget() {
 
   useEffect(() => {
     const listener = () => {
+      setIsDeactivated(false);
+      window.localStorage.removeItem('webprose.widgetDeactivated');
       setIsOpen(true);
     };
 
     window.addEventListener(OPEN_WIDGET_EVENT, listener);
     return () => window.removeEventListener(OPEN_WIDGET_EVENT, listener);
+  }, []);
+
+  useEffect(() => {
+    const listener = () => {
+      deactivateWidget();
+    };
+
+    window.addEventListener(DEACTIVATE_WIDGET_EVENT, listener);
+    return () => window.removeEventListener(DEACTIVATE_WIDGET_EVENT, listener);
   }, []);
 
   useEffect(() => {
@@ -310,6 +326,14 @@ export function ChatWidget() {
     await startChat(message.retryContent, Boolean(message.retryAttachContext));
   }
 
+  function deactivateWidget() {
+    setIsOpen(false);
+    setIsDeactivated(true);
+    window.localStorage.setItem('webprose.widgetDeactivated', 'true');
+  }
+
+  if (isDeactivated) return null;
+
   return (
     <div
       className="fixed z-[2147483647] font-sans text-[#172033] dark:text-[#edf4f2]"
@@ -396,6 +420,15 @@ export function ChatWidget() {
               title={contextEnabled ? 'Context on' : 'Context off'}
             >
               <FileText className="h-4 w-4" />
+            </button>
+            <button
+              type="button"
+              onClick={deactivateWidget}
+              className="grid h-8 w-8 place-items-center rounded-md text-[#6b7a86] transition hover:bg-[#edf4f2] hover:text-[#172033] focus:outline-none focus:ring-2 focus:ring-[#6a9d9a] dark:text-[#9db0b5] dark:hover:bg-[#1b2a3f] dark:hover:text-[#edf4f2]"
+              aria-label="Deactivate chat on this page"
+              title="Deactivate on this page"
+            >
+              <EyeOff className="h-4 w-4" />
             </button>
             <button
               type="button"
