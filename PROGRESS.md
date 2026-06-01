@@ -10,3 +10,16 @@
 
 Known gaps:
 - The content script currently only logs and mounts a hidden style probe. The visible in-page widget is planned for Phase 2.
+
+## 2026-06-01 - Phase 1
+
+- Added a polished options page for provider, model, API key, and OpenAI-compatible base URL settings.
+- Added a popup action that opens the settings page.
+- Stored BYOK settings in `browser.storage.local` through shared helpers, with an explicit local-plaintext hardening note.
+- Added typed runtime messaging for connection tests.
+- Added provider adapters for Anthropic and OpenAI-compatible chat APIs, including SSE parsing for future streaming chat.
+- Routed connection tests through the background worker so provider network calls do not run in content scripts.
+- Added provider host permissions for Anthropic and OpenAI, plus optional exact-origin requests for custom OpenAI-compatible base URLs.
+
+Known gaps:
+- Connection tests require real user API keys and provider access. The code path builds and typechecks, but no live provider key was available in this environment.
