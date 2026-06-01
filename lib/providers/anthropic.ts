@@ -61,6 +61,7 @@ export class AnthropicProvider implements Provider {
       'content-type': 'application/json',
       'x-api-key': this.settings.apiKey,
       'anthropic-version': ANTHROPIC_VERSION,
+      'anthropic-dangerous-direct-browser-access': 'true',
     };
   }
 

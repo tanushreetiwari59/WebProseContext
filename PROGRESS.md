@@ -83,3 +83,14 @@ Known gaps:
 
 Known gaps:
 - End-to-end provider validation still requires a real API key.
+
+## 2026-06-01 - Provider Fixes
+
+- Added the Anthropic browser access header required for extension fetches.
+- Added Gemini as a first-class provider using the Gemini API streaming endpoint.
+- Added Grok as a first-class provider using xAI's OpenAI-compatible API.
+- Added fixed host permissions for Gemini and xAI.
+- Updated provider options, model suggestions, and README provider coverage.
+
+Known gaps:
+- Gemini and Grok live validation require real API keys.

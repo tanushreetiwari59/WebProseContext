@@ -53,6 +53,8 @@ The key is stored in `chrome.storage.local` on this device. It is sent only from
 
 - Anthropic Messages API
 - OpenAI-compatible chat completions APIs
+- Google Gemini API
+- xAI Grok chat completions API
 
 Custom OpenAI-compatible base URLs may request an exact origin permission before connection testing or chat.
 

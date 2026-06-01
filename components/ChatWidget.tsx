@@ -567,14 +567,13 @@ function toChatMessages(messages: WidgetMessage[]): ChatMessage[] {
 function modelSuggestions(settings: AppSettings | null): string[] {
   if (!settings) return [];
 
-  const suggestions =
-    settings.provider === 'anthropic'
-      ? [
-          'claude-3-5-sonnet-latest',
-          'claude-3-5-haiku-latest',
-          settings.model,
-        ]
-      : ['gpt-4o-mini', 'gpt-4o', settings.model];
+  const suggestionsByProvider: Record<AppSettings['provider'], string[]> = {
+    anthropic: ['claude-3-5-sonnet-latest', 'claude-3-5-haiku-latest'],
+    'openai-compatible': ['gpt-4o-mini', 'gpt-4o'],
+    gemini: ['gemini-1.5-flash', 'gemini-1.5-pro'],
+    grok: ['grok-2-latest', 'grok-2-vision-latest'],
+  };
+  const suggestions = [...suggestionsByProvider[settings.provider], settings.model];
 
   return Array.from(new Set(suggestions.filter(Boolean))).filter(
     (model) => model !== settings.model,

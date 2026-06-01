@@ -1,4 +1,8 @@
-export type ProviderKind = 'anthropic' | 'openai-compatible';
+export type ProviderKind =
+  | 'anthropic'
+  | 'openai-compatible'
+  | 'gemini'
+  | 'grok';
 
 export interface AppSettings {
   provider: ProviderKind;

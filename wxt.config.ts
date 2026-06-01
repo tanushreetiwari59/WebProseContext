@@ -10,6 +10,8 @@ export default defineConfig({
     host_permissions: [
       'https://api.anthropic.com/*',
       'https://api.openai.com/*',
+      'https://generativelanguage.googleapis.com/*',
+      'https://api.x.ai/*',
     ],
     optional_host_permissions: ['<all_urls>'],
     action: {

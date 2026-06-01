@@ -1,5 +1,12 @@
 import { FormEvent, useEffect, useMemo, useState } from 'react';
-import { CheckCircle2, ExternalLink, KeyRound, Loader2, Save, ServerCog } from 'lucide-react';
+import {
+  CheckCircle2,
+  ExternalLink,
+  KeyRound,
+  Loader2,
+  Save,
+  ServerCog,
+} from 'lucide-react';
 import { MESSAGE_TYPES } from '@/types/messaging';
 import {
   DEFAULT_SETTINGS,
@@ -14,18 +21,35 @@ const PROVIDERS: Array<{
   label: string;
   description: string;
   defaultModel: string;
+  defaultBaseUrl: string;
 }> = [
   {
     id: 'anthropic',
     label: 'Anthropic',
     description: 'Claude models through the Anthropic Messages API.',
     defaultModel: 'claude-3-5-sonnet-latest',
+    defaultBaseUrl: 'https://api.anthropic.com/v1',
   },
   {
     id: 'openai-compatible',
     label: 'OpenAI compatible',
     description: 'OpenAI, local gateways, and compatible hosted APIs.',
     defaultModel: 'gpt-4o-mini',
+    defaultBaseUrl: 'https://api.openai.com/v1',
+  },
+  {
+    id: 'gemini',
+    label: 'Gemini',
+    description: 'Google Gemini models through the Gemini API.',
+    defaultModel: 'gemini-1.5-flash',
+    defaultBaseUrl: 'https://generativelanguage.googleapis.com/v1beta',
+  },
+  {
+    id: 'grok',
+    label: 'Grok',
+    description: 'xAI Grok models through the chat completions API.',
+    defaultModel: 'grok-2-latest',
+    defaultBaseUrl: 'https://api.x.ai/v1',
   },
 ];
 
@@ -115,6 +139,7 @@ function App() {
       ...current,
       provider,
       model: selected?.defaultModel ?? current.model,
+      baseUrl: selected?.defaultBaseUrl ?? current.baseUrl,
     }));
   }
 
