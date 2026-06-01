@@ -134,3 +134,13 @@ Known gaps:
 
 Known gaps:
 - Chrome still blocks content scripts on restricted browser-owned pages by design.
+
+## 2026-06-01 - Adaptive Widget Placement
+
+- Increased the chat panel width so it stays closer to the GitHub-sized layout on pages with enough space.
+- Added placement logic that detects fixed or sticky bottom-right page UI, such as site messaging docks.
+- Moves the widget beside the obstacle when there is room, or above it on narrower pages.
+- Keeps the floating button above full-width bottom docks when the panel is closed.
+
+Known gaps:
+- Page-level overlays vary widely, so unusual custom layouts may still need site-specific tuning.

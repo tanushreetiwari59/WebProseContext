@@ -70,6 +70,7 @@ export function ChatWidget() {
   const panelRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const placement = useWidgetPlacement(isOpen);
 
   useEffect(() => {
     void refreshSettings();
@@ -287,10 +288,16 @@ export function ChatWidget() {
   }
 
   return (
-    <div className="fixed bottom-4 right-4 z-[2147483647] font-sans text-slate-950 dark:text-slate-50">
+    <div
+      className="fixed z-[2147483647] font-sans text-slate-950 dark:text-slate-50"
+      style={{
+        right: placement.right,
+        bottom: placement.bottom,
+      }}
+    >
       <div
         ref={panelRef}
-        className={`mb-3 flex h-[min(70vh,42rem)] w-[min(calc(100vw-2rem),24rem)] origin-bottom-right flex-col overflow-hidden rounded-lg border border-slate-200 bg-white shadow-2xl transition duration-200 ease-out dark:border-slate-800 dark:bg-slate-950 ${
+        className={`mb-3 flex h-[min(76vh,42rem)] w-[min(calc(100vw-2rem),28rem)] origin-bottom-right flex-col overflow-hidden rounded-lg border border-slate-200 bg-white shadow-2xl transition duration-200 ease-out dark:border-slate-800 dark:bg-slate-950 ${
           isOpen
             ? 'translate-y-0 scale-100 opacity-100'
             : 'pointer-events-none translate-y-3 scale-95 opacity-0'
@@ -465,12 +472,12 @@ export function ChatWidget() {
                 )}
               </div>
               <div
-              className={`max-w-[18rem] rounded-lg px-3 py-2 text-sm leading-6 ${
+                className={`max-w-[22rem] rounded-lg px-3 py-2 text-sm leading-6 ${
                   message.role === 'user'
                     ? 'bg-slate-900 text-white dark:bg-slate-100 dark:text-slate-950'
                     : message.status === 'error'
                       ? 'border border-red-200 bg-red-50 text-red-800 dark:border-red-900 dark:bg-red-950 dark:text-red-200'
-                    : 'border border-slate-200 bg-slate-50 text-slate-800 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-100'
+                      : 'border border-slate-200 bg-slate-50 text-slate-800 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-100'
                 }`}
               >
                 {message.content ? (
@@ -575,6 +582,118 @@ function toChatMessages(messages: WidgetMessage[]): ChatMessage[] {
       role: message.role,
       content: message.content,
     }));
+}
+
+function useWidgetPlacement(isOpen: boolean) {
+  const [placement, setPlacement] = useState({ right: 16, bottom: 16 });
+
+  useEffect(() => {
+    function updatePlacement() {
+      const viewportWidth = window.innerWidth;
+      const viewportHeight = window.innerHeight;
+
+      if (viewportWidth < 520) {
+        setPlacement({ right: 16, bottom: 16 });
+        return;
+      }
+
+      const obstacle = findBottomRightObstacle();
+      const panelWidth = Math.min(viewportWidth - 32, 448);
+      const buttonSize = 56;
+      const gap = 16;
+
+      if (obstacle) {
+        const candidateRight = Math.max(16, viewportWidth - obstacle.left + gap);
+        const maxRight = Math.max(16, viewportWidth - panelWidth - gap);
+        const fitsBesideObstacle = candidateRight <= maxRight;
+
+        setPlacement({
+          right: fitsBesideObstacle ? candidateRight : 16,
+          bottom: fitsBesideObstacle
+            ? 16
+            : Math.min(
+                Math.max(16, viewportHeight - obstacle.top + gap),
+                Math.max(16, viewportHeight - 240),
+              ),
+        });
+        return;
+      }
+
+      const bottomDock = findBottomDock();
+      setPlacement({
+        right: 16,
+        bottom:
+          bottomDock && !isOpen
+            ? bottomDock + gap
+            : Math.max(16, bottomDock - buttonSize),
+      });
+    }
+
+    updatePlacement();
+    window.addEventListener('resize', updatePlacement);
+    window.addEventListener('scroll', updatePlacement, true);
+    const timer = window.setInterval(updatePlacement, 1500);
+
+    return () => {
+      window.removeEventListener('resize', updatePlacement);
+      window.removeEventListener('scroll', updatePlacement, true);
+      window.clearInterval(timer);
+    };
+  }, [isOpen]);
+
+  return placement;
+}
+
+function findBottomRightObstacle(): DOMRect | null {
+  const viewportWidth = window.innerWidth;
+  const viewportHeight = window.innerHeight;
+  const candidates = Array.from(
+    document.body.querySelectorAll<HTMLElement>('*'),
+  );
+  let best: DOMRect | null = null;
+
+  for (const element of candidates) {
+    if (element.closest('webprose-context-root')) continue;
+
+    const style = window.getComputedStyle(element);
+    if (style.position !== 'fixed' && style.position !== 'sticky') continue;
+    if (style.display === 'none' || style.visibility === 'hidden') continue;
+
+    const rect = element.getBoundingClientRect();
+    const width = rect.width;
+    const height = rect.height;
+    if (width < 180 || height < 60) continue;
+    if (rect.right < viewportWidth * 0.55) continue;
+    if (rect.bottom < viewportHeight - 180) continue;
+
+    if (!best || rect.left < best.left) best = rect;
+  }
+
+  return best;
+}
+
+function findBottomDock(): number {
+  const viewportHeight = window.innerHeight;
+  let dockHeight = 0;
+
+  for (const element of Array.from(
+    document.body.querySelectorAll<HTMLElement>('*'),
+  )) {
+    if (element.closest('webprose-context-root')) continue;
+
+    const style = window.getComputedStyle(element);
+    if (style.position !== 'fixed' && style.position !== 'sticky') continue;
+    if (style.display === 'none' || style.visibility === 'hidden') continue;
+
+    const rect = element.getBoundingClientRect();
+    if (rect.width < window.innerWidth * 0.4) continue;
+    if (rect.height < 40 || rect.height > 180) continue;
+    if (rect.bottom < viewportHeight - 24) continue;
+
+    dockHeight = Math.max(dockHeight, viewportHeight - rect.top);
+  }
+
+  return dockHeight;
 }
 
 function modelSuggestions(settings: AppSettings | null): string[] {
