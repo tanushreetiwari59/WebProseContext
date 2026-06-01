@@ -6,3 +6,49 @@
   color-scheme: light dark;
   font-family: Inter, ui-sans-serif, system-ui, sans-serif;
 }
+
+.webprose-panel {
+  background: #fbfaf7;
+  border-color: #d9e4e2;
+  box-shadow:
+    0 24px 60px rgb(20 32 46 / 18%),
+    0 2px 8px rgb(20 32 46 / 8%);
+}
+
+.webprose-header {
+  background: linear-gradient(180deg, #fbfaf7 0%, #f3f6f3 100%);
+  border-color: #d9e4e2;
+}
+
+.webprose-mark,
+.webprose-fab {
+  background: #2f6f73;
+}
+
+.webprose-fab:hover {
+  background: #285f62;
+}
+
+@media (prefers-color-scheme: dark) {
+  .webprose-panel {
+    background: #101827;
+    border-color: #304258;
+    box-shadow:
+      0 24px 60px rgb(0 0 0 / 42%),
+      0 2px 8px rgb(0 0 0 / 24%);
+  }
+
+  .webprose-header {
+    background: linear-gradient(180deg, #121d2e 0%, #101827 100%);
+    border-color: #304258;
+  }
+
+  .webprose-mark,
+  .webprose-fab {
+    background: #3f8386;
+  }
+
+  .webprose-fab:hover {
+    background: #4d9294;
+  }
+}

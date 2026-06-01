@@ -144,3 +144,14 @@ Known gaps:
 
 Known gaps:
 - Page-level overlays vary widely, so unusual custom layouts may still need site-specific tuning.
+
+## 2026-06-01 - Movable Resizable Soft UI
+
+- Added drag support from the chat header so the panel can be placed anywhere within the viewport.
+- Added a top-left resize handle with clamped width and height so dimensions stay usable.
+- Added an expand toggle and double-click reset on the floating button.
+- Persisted manual widget frame in page local storage.
+- Shifted the widget, popup, and options page toward a softer palette: warm ivory surfaces, muted ink text, mist borders, and deep teal accents.
+
+Known gaps:
+- Position persistence is per site because it uses page local storage.

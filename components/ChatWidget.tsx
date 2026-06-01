@@ -3,6 +3,7 @@ import {
   Check,
   Copy,
   FileText,
+  Grip,
   MessageSquareText,
   Minimize2,
   MousePointer2,
@@ -11,7 +12,13 @@ import {
   User,
   X,
 } from 'lucide-react';
-import { KeyboardEvent, useEffect, useRef, useState } from 'react';
+import {
+  KeyboardEvent,
+  PointerEvent as ReactPointerEvent,
+  useEffect,
+  useRef,
+  useState,
+} from 'react';
 import { MarkdownMessage } from './MarkdownMessage';
 import { extractPageContext } from '@/lib/context/extractPageContext';
 import type { PageContext } from '@/types/page-context';
@@ -46,6 +53,10 @@ const INITIAL_MESSAGE: WidgetMessage = {
     'Ask a question about this page. Responses stream through your configured provider.\n\n```ts\nconst phase = 4;\n```',
 };
 
+const DEFAULT_PANEL_SIZE = { width: 448, height: 640 };
+const MIN_PANEL_SIZE = { width: 360, height: 420 };
+const MAX_PANEL_SIZE = { width: 560, height: 760 };
+
 export function ChatWidget() {
   const [isOpen, setIsOpen] = useState(false);
   const [input, setInput] = useState('');
@@ -70,7 +81,14 @@ export function ChatWidget() {
   const panelRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
-  const placement = useWidgetPlacement(isOpen);
+  const {
+    frame,
+    placement,
+    startDrag,
+    startResize,
+    expandPanel,
+    resetFrame,
+  } = useWidgetFrame(isOpen);
 
   useEffect(() => {
     void refreshSettings();
@@ -289,7 +307,7 @@ export function ChatWidget() {
 
   return (
     <div
-      className="fixed z-[2147483647] font-sans text-slate-950 dark:text-slate-50"
+      className="fixed z-[2147483647] font-sans text-[#172033] dark:text-[#edf4f2]"
       style={{
         right: placement.right,
         bottom: placement.bottom,
@@ -297,25 +315,41 @@ export function ChatWidget() {
     >
       <div
         ref={panelRef}
-        className={`mb-3 flex h-[min(76vh,42rem)] w-[min(calc(100vw-2rem),28rem)] origin-bottom-right flex-col overflow-hidden rounded-lg border border-slate-200 bg-white shadow-2xl transition duration-200 ease-out dark:border-slate-800 dark:bg-slate-950 ${
+        className={`webprose-panel relative mb-3 flex origin-bottom-right flex-col overflow-hidden rounded-lg border shadow-2xl transition duration-200 ease-out ${
           isOpen
             ? 'translate-y-0 scale-100 opacity-100'
             : 'pointer-events-none translate-y-3 scale-95 opacity-0'
         }`}
+        style={{
+          width: frame.width,
+          height: frame.height,
+        }}
         role="dialog"
         aria-label="WebProse chat"
         aria-hidden={!isOpen}
       >
-        <header className="flex h-14 shrink-0 items-center justify-between border-b border-slate-200 px-4 dark:border-slate-800">
+        <button
+          type="button"
+          onPointerDown={startResize}
+          className="absolute left-1 top-1 z-10 grid h-7 w-7 cursor-nwse-resize place-items-center rounded-md text-[#6b7a86] opacity-60 transition hover:bg-[#edf4f2] hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-[#6a9d9a] dark:text-[#9db0b5] dark:hover:bg-[#1b2a3f]"
+          aria-label="Resize chat"
+          title="Drag to resize"
+        >
+          <Grip className="h-3.5 w-3.5" />
+        </button>
+        <header
+          className="webprose-header flex h-14 shrink-0 cursor-move items-center justify-between border-b px-4 pl-9"
+          onPointerDown={startDrag}
+        >
           <div className="flex min-w-0 items-center gap-3">
-            <div className="grid h-8 w-8 shrink-0 place-items-center rounded-md bg-sky-600 text-white">
+            <div className="webprose-mark grid h-8 w-8 shrink-0 place-items-center rounded-md text-white">
               <Sparkles className="h-4 w-4" />
             </div>
             <div className="min-w-0">
               <h2 className="truncate text-sm font-semibold">
                 WebProse Context
               </h2>
-              <p className="truncate text-xs text-slate-500 dark:text-slate-400">
+              <p className="truncate text-xs text-[#667586] dark:text-[#9aaab1]">
                 {settings?.model || 'No model selected'}
               </p>
             </div>
@@ -324,7 +358,7 @@ export function ChatWidget() {
             <select
               value={settings?.model ?? ''}
               onChange={(event) => updateModel(event.target.value)}
-              className="hidden max-w-32 rounded-md border border-slate-200 bg-white px-2 py-1 text-xs font-medium text-slate-700 outline-none focus:border-sky-500 focus:ring-2 focus:ring-sky-200 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-200 dark:focus:ring-sky-900 sm:block"
+              className="hidden max-w-32 rounded-md border border-[#d9e4e2] bg-[#fbfaf7] px-2 py-1 text-xs font-medium text-[#29364a] outline-none focus:border-[#6a9d9a] focus:ring-2 focus:ring-[#d7ebe7] dark:border-[#304258] dark:bg-[#101827] dark:text-[#dce7e5] dark:focus:ring-[#243b3e] sm:block"
               aria-label="Model"
             >
               <option value={settings?.model ?? ''}>
@@ -341,8 +375,8 @@ export function ChatWidget() {
               onClick={() => setContextEnabled((current) => !current)}
               className={`grid h-8 w-8 place-items-center rounded-md transition focus:outline-none focus:ring-2 focus:ring-sky-500 ${
                 contextEnabled
-                  ? 'bg-sky-100 text-sky-700 hover:bg-sky-200 dark:bg-sky-950 dark:text-sky-300'
-                  : 'text-slate-500 hover:bg-slate-100 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-slate-900 dark:hover:text-slate-100'
+                  ? 'bg-[#d9eeea] text-[#266568] hover:bg-[#c6e3de] dark:bg-[#17343a] dark:text-[#9fd5ce]'
+                  : 'text-[#6b7a86] hover:bg-[#edf4f2] hover:text-[#172033] dark:text-[#9db0b5] dark:hover:bg-[#1b2a3f] dark:hover:text-[#edf4f2]'
               }`}
               aria-label={
                 contextEnabled ? 'Turn page context off' : 'Turn page context on'
@@ -354,7 +388,7 @@ export function ChatWidget() {
             <button
               type="button"
               onClick={() => setIsOpen(false)}
-              className="grid h-8 w-8 place-items-center rounded-md text-slate-500 transition hover:bg-slate-100 hover:text-slate-900 focus:outline-none focus:ring-2 focus:ring-sky-500 dark:text-slate-400 dark:hover:bg-slate-900 dark:hover:text-slate-100"
+              className="grid h-8 w-8 place-items-center rounded-md text-[#6b7a86] transition hover:bg-[#edf4f2] hover:text-[#172033] focus:outline-none focus:ring-2 focus:ring-[#6a9d9a] dark:text-[#9db0b5] dark:hover:bg-[#1b2a3f] dark:hover:text-[#edf4f2]"
               aria-label="Minimize chat"
               title="Minimize"
             >
@@ -362,9 +396,19 @@ export function ChatWidget() {
             </button>
             <button
               type="button"
+              onClick={expandPanel}
+              disabled={Boolean(activeRequestId)}
+              className="grid h-8 w-8 place-items-center rounded-md text-[#6b7a86] transition hover:bg-[#edf4f2] hover:text-[#172033] focus:outline-none focus:ring-2 focus:ring-[#6a9d9a] dark:text-[#9db0b5] dark:hover:bg-[#1b2a3f] dark:hover:text-[#edf4f2]"
+              aria-label="Expand chat"
+              title="Expand"
+            >
+              <Minimize2 className="h-4 w-4 rotate-180" />
+            </button>
+            <button
+              type="button"
               onClick={() => setMessages([INITIAL_MESSAGE])}
               disabled={Boolean(activeRequestId)}
-              className="grid h-8 w-8 place-items-center rounded-md text-slate-500 transition hover:bg-slate-100 hover:text-slate-900 focus:outline-none focus:ring-2 focus:ring-sky-500 dark:text-slate-400 dark:hover:bg-slate-900 dark:hover:text-slate-100"
+              className="grid h-8 w-8 place-items-center rounded-md text-[#6b7a86] transition hover:bg-[#edf4f2] hover:text-[#172033] focus:outline-none focus:ring-2 focus:ring-[#6a9d9a] dark:text-[#9db0b5] dark:hover:bg-[#1b2a3f] dark:hover:text-[#edf4f2]"
               aria-label="Clear chat"
               title="Clear"
             >
@@ -373,10 +417,10 @@ export function ChatWidget() {
           </div>
         </header>
 
-        <div className="flex shrink-0 flex-wrap gap-2 border-b border-slate-200 px-4 py-3 dark:border-slate-800">
+        <div className="flex shrink-0 flex-wrap gap-2 border-b border-[#d9e4e2] px-4 py-3 dark:border-[#304258]">
           {contextEnabled && contextPreview ? (
             <>
-              <span className="inline-flex max-w-full items-center gap-1.5 rounded-full bg-slate-100 px-2.5 py-1 text-xs font-medium text-slate-700 dark:bg-slate-900 dark:text-slate-200">
+              <span className="inline-flex max-w-full items-center gap-1.5 rounded-full bg-[#edf4f2] px-2.5 py-1 text-xs font-medium text-[#354257] dark:bg-[#1b2a3f] dark:text-[#d7e5e2]">
                 <FileText className="h-3.5 w-3.5 shrink-0" />
                 <span className="truncate">Page: {contextPreview.title}</span>
               </span>
@@ -399,7 +443,7 @@ export function ChatWidget() {
           )}
         </div>
 
-        <div className="shrink-0 border-b border-slate-200 px-4 py-3 dark:border-slate-800">
+        <div className="shrink-0 border-b border-[#d9e4e2] px-4 py-3 dark:border-[#304258]">
           {!settings?.apiKey ? (
             <div className="mb-3 flex items-center justify-between gap-3 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-900 dark:border-amber-900 dark:bg-amber-950 dark:text-amber-100">
               <span>Add an API key to start chatting.</span>
@@ -421,7 +465,7 @@ export function ChatWidget() {
                   type="button"
                   onClick={() => runQuickAction(action)}
                   disabled={Boolean(activeRequestId)}
-                  className="inline-flex shrink-0 items-center gap-1.5 rounded-md border border-slate-200 bg-white px-2.5 py-1.5 text-xs font-medium text-slate-700 shadow-sm transition hover:border-slate-300 hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-sky-500 disabled:cursor-not-allowed disabled:opacity-50 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-200 dark:hover:border-slate-700 dark:hover:bg-slate-800"
+                  className="inline-flex shrink-0 items-center gap-1.5 rounded-md border border-[#d9e4e2] bg-[#fbfaf7] px-2.5 py-1.5 text-xs font-medium text-[#354257] shadow-sm transition hover:border-[#b7cbc8] hover:bg-[#f3f6f3] focus:outline-none focus:ring-2 focus:ring-[#6a9d9a] disabled:cursor-not-allowed disabled:opacity-50 dark:border-[#304258] dark:bg-[#101827] dark:text-[#dce7e5] dark:hover:border-[#496276] dark:hover:bg-[#172033]"
                   title={action.label}
                 >
                   <Icon className="h-3.5 w-3.5" />
@@ -525,8 +569,8 @@ export function ChatWidget() {
           ) : null}
         </div>
 
-        <footer className="shrink-0 border-t border-slate-200 p-3 dark:border-slate-800">
-          <div className="flex items-end gap-2 rounded-lg border border-slate-300 bg-white p-2 shadow-sm focus-within:border-sky-500 focus-within:ring-2 focus-within:ring-sky-200 dark:border-slate-700 dark:bg-slate-900 dark:focus-within:ring-sky-900">
+        <footer className="shrink-0 border-t border-[#d9e4e2] p-3 dark:border-[#304258]">
+          <div className="flex items-end gap-2 rounded-lg border border-[#c7d6d2] bg-[#fbfaf7] p-2 shadow-sm focus-within:border-[#6a9d9a] focus-within:ring-2 focus-within:ring-[#d7ebe7] dark:border-[#3b5165] dark:bg-[#101827] dark:focus-within:ring-[#243b3e]">
             <textarea
               ref={inputRef}
               value={input}
@@ -542,8 +586,8 @@ export function ChatWidget() {
               disabled={!activeRequestId && !input.trim()}
               className={`grid h-10 w-10 shrink-0 place-items-center rounded-md text-white transition focus:outline-none focus:ring-2 focus:ring-sky-500 disabled:cursor-not-allowed disabled:bg-slate-300 dark:disabled:bg-slate-700 ${
                 activeRequestId
-                  ? 'bg-red-600 hover:bg-red-700'
-                  : 'bg-sky-600 hover:bg-sky-700'
+                  ? 'bg-[#b4534a] hover:bg-[#9b463f]'
+                  : 'bg-[#2f6f73] hover:bg-[#285f62]'
               }`}
               aria-label={activeRequestId ? 'Stop response' : 'Send message'}
               title={activeRequestId ? 'Stop' : 'Send'}
@@ -561,9 +605,10 @@ export function ChatWidget() {
       <button
         type="button"
         onClick={() => setIsOpen((current) => !current)}
-        className="ml-auto grid h-14 w-14 place-items-center rounded-full bg-sky-600 text-white shadow-xl transition hover:bg-sky-700 focus:outline-none focus:ring-4 focus:ring-sky-300 dark:focus:ring-sky-900"
+        onDoubleClick={resetFrame}
+        className="webprose-fab ml-auto grid h-14 w-14 place-items-center rounded-full text-white shadow-xl transition focus:outline-none focus:ring-4 focus:ring-[#bddbd6]"
         aria-label={isOpen ? 'Close WebProse chat' : 'Open WebProse chat'}
-        title={isOpen ? 'Close chat' : 'Open chat'}
+        title={isOpen ? 'Close chat' : 'Open chat. Double click to reset position.'}
       >
         {isOpen ? (
           <X className="h-6 w-6" />
@@ -584,11 +629,39 @@ function toChatMessages(messages: WidgetMessage[]): ChatMessage[] {
     }));
 }
 
-function useWidgetPlacement(isOpen: boolean) {
+function useWidgetFrame(isOpen: boolean) {
+  const [manualFrame, setManualFrame] = useState<{
+    right: number;
+    bottom: number;
+    width: number;
+    height: number;
+  } | null>(() => readStoredFrame());
+  const frame = clampFrame(
+    manualFrame ?? {
+      right: 16,
+      bottom: 16,
+      ...DEFAULT_PANEL_SIZE,
+    },
+  );
   const [placement, setPlacement] = useState({ right: 16, bottom: 16 });
 
   useEffect(() => {
     function updatePlacement() {
+      if (manualFrame) {
+        const nextFrame = clampFrame(manualFrame);
+        if (
+          nextFrame.right !== manualFrame.right ||
+          nextFrame.bottom !== manualFrame.bottom ||
+          nextFrame.width !== manualFrame.width ||
+          nextFrame.height !== manualFrame.height
+        ) {
+          setManualFrame(nextFrame);
+          storeFrame(nextFrame);
+        }
+        setPlacement({ right: nextFrame.right, bottom: nextFrame.bottom });
+        return;
+      }
+
       const viewportWidth = window.innerWidth;
       const viewportHeight = window.innerHeight;
 
@@ -598,7 +671,7 @@ function useWidgetPlacement(isOpen: boolean) {
       }
 
       const obstacle = findBottomRightObstacle();
-      const panelWidth = Math.min(viewportWidth - 32, 448);
+      const panelWidth = frame.width;
       const buttonSize = 56;
       const gap = 16;
 
@@ -639,9 +712,156 @@ function useWidgetPlacement(isOpen: boolean) {
       window.removeEventListener('scroll', updatePlacement, true);
       window.clearInterval(timer);
     };
-  }, [isOpen]);
+  }, [frame.width, isOpen, manualFrame]);
 
-  return placement;
+  function startDrag(event: ReactPointerEvent<HTMLElement>) {
+    if (shouldIgnoreMove(event.target)) return;
+
+    const startX = event.clientX;
+    const startY = event.clientY;
+    const startFrame = frame;
+
+    event.currentTarget.setPointerCapture(event.pointerId);
+
+    function move(pointerEvent: PointerEvent) {
+      const nextFrame = clampFrame({
+        ...startFrame,
+        right: startFrame.right - (pointerEvent.clientX - startX),
+        bottom: startFrame.bottom - (pointerEvent.clientY - startY),
+      });
+      setManualFrame(nextFrame);
+      storeFrame(nextFrame);
+    }
+
+    function end() {
+      window.removeEventListener('pointermove', move);
+      window.removeEventListener('pointerup', end);
+    }
+
+    window.addEventListener('pointermove', move);
+    window.addEventListener('pointerup', end, { once: true });
+  }
+
+  function startResize(event: ReactPointerEvent<HTMLElement>) {
+    event.preventDefault();
+    event.stopPropagation();
+
+    const startX = event.clientX;
+    const startY = event.clientY;
+    const startFrame = frame;
+
+    event.currentTarget.setPointerCapture(event.pointerId);
+
+    function move(pointerEvent: PointerEvent) {
+      const nextFrame = clampFrame({
+        ...startFrame,
+        width: startFrame.width - (pointerEvent.clientX - startX),
+        height: startFrame.height - (pointerEvent.clientY - startY),
+      });
+      setManualFrame(nextFrame);
+      storeFrame(nextFrame);
+    }
+
+    function end() {
+      window.removeEventListener('pointermove', move);
+      window.removeEventListener('pointerup', end);
+    }
+
+    window.addEventListener('pointermove', move);
+    window.addEventListener('pointerup', end, { once: true });
+  }
+
+  function expandPanel() {
+    const nextFrame = clampFrame({
+      ...frame,
+      width:
+        frame.width >= MAX_PANEL_SIZE.width - 20
+          ? DEFAULT_PANEL_SIZE.width
+          : MAX_PANEL_SIZE.width,
+      height:
+        frame.height >= MAX_PANEL_SIZE.height - 20
+          ? DEFAULT_PANEL_SIZE.height
+          : MAX_PANEL_SIZE.height,
+    });
+    setManualFrame(nextFrame);
+    storeFrame(nextFrame);
+  }
+
+  function resetFrame() {
+    setManualFrame(null);
+    window.localStorage.removeItem('webprose.widgetFrame');
+  }
+
+  return {
+    frame,
+    placement,
+    startDrag,
+    startResize,
+    expandPanel,
+    resetFrame,
+  };
+}
+
+function shouldIgnoreMove(target: EventTarget | null): boolean {
+  if (!(target instanceof HTMLElement)) return false;
+  return Boolean(target.closest('button, select, input, textarea, a'));
+}
+
+function clampFrame(frame: {
+  right: number;
+  bottom: number;
+  width: number;
+  height: number;
+}) {
+  const viewportWidth = window.innerWidth;
+  const viewportHeight = window.innerHeight;
+  const width = clamp(
+    frame.width,
+    Math.min(MIN_PANEL_SIZE.width, viewportWidth - 32),
+    Math.min(MAX_PANEL_SIZE.width, viewportWidth - 32),
+  );
+  const height = clamp(
+    frame.height,
+    Math.min(MIN_PANEL_SIZE.height, viewportHeight - 120),
+    Math.min(MAX_PANEL_SIZE.height, viewportHeight - 120),
+  );
+  const maxRight = Math.max(16, viewportWidth - width - 16);
+  const maxBottom = Math.max(16, viewportHeight - 96);
+
+  return {
+    width,
+    height,
+    right: clamp(frame.right, 16, maxRight),
+    bottom: clamp(frame.bottom, 16, maxBottom),
+  };
+}
+
+function clamp(value: number, min: number, max: number): number {
+  return Math.min(Math.max(value, min), Math.max(min, max));
+}
+
+function readStoredFrame() {
+  try {
+    const stored = window.localStorage.getItem('webprose.widgetFrame');
+    if (!stored) return null;
+    return clampFrame(JSON.parse(stored) as {
+      right: number;
+      bottom: number;
+      width: number;
+      height: number;
+    });
+  } catch {
+    return null;
+  }
+}
+
+function storeFrame(frame: {
+  right: number;
+  bottom: number;
+  width: number;
+  height: number;
+}) {
+  window.localStorage.setItem('webprose.widgetFrame', JSON.stringify(frame));
 }
 
 function findBottomRightObstacle(): DOMRect | null {
