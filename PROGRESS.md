@@ -196,3 +196,13 @@ Known gaps:
 
 Known gaps:
 - Old saved right/bottom frame data will be ignored by the new clamp and may reset placement.
+
+## 2026-06-01 - Simplified Header Close
+
+- Removed the separate expand, minimize, and deactivate header controls.
+- Kept one top-right close button.
+- The close button now hides the widget on the current page.
+- Rebuilt the unpacked extension output.
+
+Known gaps:
+- Reopening a closed widget still requires the extension popup action.

@@ -5,9 +5,7 @@ import {
   FileText,
   Grip,
   GripHorizontal,
-  EyeOff,
   MessageSquareText,
-  Minimize2,
   MousePointer2,
   Send,
   Sparkles,
@@ -95,7 +93,6 @@ export function ChatWidget() {
     isDragging,
     startDrag,
     startResize,
-    expandPanel,
     resetFrame,
   } = useWidgetFrame(isOpen);
 
@@ -424,37 +421,8 @@ export function ChatWidget() {
               type="button"
               onClick={deactivateWidget}
               className="grid h-8 w-8 place-items-center rounded-md text-[#6b7a86] transition hover:bg-[#edf4f2] hover:text-[#172033] focus:outline-none focus:ring-2 focus:ring-[#6a9d9a] dark:text-[#9db0b5] dark:hover:bg-[#1b2a3f] dark:hover:text-[#edf4f2]"
-              aria-label="Deactivate chat on this page"
-              title="Deactivate on this page"
-            >
-              <EyeOff className="h-4 w-4" />
-            </button>
-            <button
-              type="button"
-              onClick={() => setIsOpen(false)}
-              className="grid h-8 w-8 place-items-center rounded-md text-[#6b7a86] transition hover:bg-[#edf4f2] hover:text-[#172033] focus:outline-none focus:ring-2 focus:ring-[#6a9d9a] dark:text-[#9db0b5] dark:hover:bg-[#1b2a3f] dark:hover:text-[#edf4f2]"
-              aria-label="Minimize chat"
-              title="Minimize"
-            >
-              <Minimize2 className="h-4 w-4" />
-            </button>
-            <button
-              type="button"
-              onClick={expandPanel}
-              disabled={Boolean(activeRequestId)}
-              className="grid h-8 w-8 place-items-center rounded-md text-[#6b7a86] transition hover:bg-[#edf4f2] hover:text-[#172033] focus:outline-none focus:ring-2 focus:ring-[#6a9d9a] dark:text-[#9db0b5] dark:hover:bg-[#1b2a3f] dark:hover:text-[#edf4f2]"
-              aria-label="Expand chat"
-              title="Expand"
-            >
-              <Minimize2 className="h-4 w-4 rotate-180" />
-            </button>
-            <button
-              type="button"
-              onClick={() => setMessages([INITIAL_MESSAGE])}
-              disabled={Boolean(activeRequestId)}
-              className="grid h-8 w-8 place-items-center rounded-md text-[#6b7a86] transition hover:bg-[#edf4f2] hover:text-[#172033] focus:outline-none focus:ring-2 focus:ring-[#6a9d9a] dark:text-[#9db0b5] dark:hover:bg-[#1b2a3f] dark:hover:text-[#edf4f2]"
-              aria-label="Clear chat"
-              title="Clear"
+              aria-label="Close chat on this page"
+              title="Close"
             >
               <X className="h-4 w-4" />
             </button>
@@ -832,22 +800,6 @@ function useWidgetFrame(isOpen: boolean) {
     window.addEventListener('pointerup', end, { once: true });
   }
 
-  function expandPanel() {
-    const nextFrame = clampFrame({
-      ...frame,
-      width:
-        frame.width >= MAX_PANEL_SIZE.width - 20
-          ? DEFAULT_PANEL_SIZE.width
-          : MAX_PANEL_SIZE.width,
-      height:
-        frame.height >= MAX_PANEL_SIZE.height - 20
-          ? DEFAULT_PANEL_SIZE.height
-          : MAX_PANEL_SIZE.height,
-    });
-    setManualFrame(nextFrame);
-    storeFrame(nextFrame);
-  }
-
   function resetFrame() {
     setManualFrame(null);
     window.localStorage.removeItem('webprose.widgetFrame');
@@ -858,7 +810,6 @@ function useWidgetFrame(isOpen: boolean) {
     isDragging,
     startDrag,
     startResize,
-    expandPanel,
     resetFrame,
   };
 }
