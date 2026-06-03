@@ -149,7 +149,7 @@ Known gaps:
 
 - Added drag support from the chat header so the panel can be placed anywhere within the viewport.
 - Added a top-left resize handle with clamped width and height so dimensions stay usable.
-- Added an expand toggle and double-click reset on the floating button.
+- Added a double-click reset on the floating button.
 - Persisted manual widget frame in page local storage.
 - Shifted the widget, popup, and options page toward a softer palette: warm ivory surfaces, muted ink text, mist borders, and deep teal accents.
 
@@ -160,7 +160,7 @@ Known gaps:
 
 - Fixed drag direction math for CSS bottom/right positioning.
 - Clamped manual placement against panel height so the panel top cannot leave the viewport.
-- Added grab and grabbing cursors plus a header title that explains dragging.
+- Added a header title that explains dragging.
 - Added `min-h-0` and overscroll containment to the panel and message list so chat history scrolls inside the widget.
 - Fixed resize direction so dragging the top-left handle down reduces panel height instead of pushing the frame out of bounds.
 
@@ -200,8 +200,8 @@ Known gaps:
 ## 2026-06-01 - Simplified Header Close
 
 - Removed the separate expand, minimize, and deactivate header controls.
-- Kept one top-right close button.
-- The close button now hides the widget on the current page.
+- Kept one top-right page-control button.
+- The page-control button hides the widget on the current page.
 - Rebuilt the unpacked extension output.
 
 Known gaps:
@@ -209,9 +209,9 @@ Known gaps:
 
 ## 2026-06-01 - Popup and Header Control Fix
 
-- Fixed the chat header close button so it stops the page widget instead of being intercepted by header drag handling.
+- Fixed the chat header page-control button so it stops the page widget instead of being intercepted by header drag handling.
 - Removed the visible top-left drag/resize affordance from the chat panel.
-- Added a single arrow resize toggle in the header for expanding or returning the chat panel size.
+- Added a single header size toggle for expanding or returning the chat panel size.
 - Closed the extension popup automatically after the popup opens or hides the chat on the current page.
 - Rebuilt the unpacked extension output.
 

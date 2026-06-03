@@ -3,7 +3,6 @@ import {
   Check,
   Copy,
   FileText,
-  Maximize2,
   MessageSquareText,
   MousePointer2,
   Send,
@@ -13,7 +12,6 @@ import {
 } from 'lucide-react';
 import {
   KeyboardEvent,
-  MouseEvent as ReactMouseEvent,
   PointerEvent as ReactPointerEvent,
   useEffect,
   useRef,
@@ -60,6 +58,15 @@ const MAX_PANEL_SIZE = { width: 560, height: 760 };
 const PANEL_BUTTON_GAP = 12;
 const FAB_SIZE = 56;
 const VIEWPORT_MARGIN = 16;
+type ResizeHandle =
+  | 'top'
+  | 'right'
+  | 'bottom'
+  | 'left'
+  | 'top-left'
+  | 'top-right'
+  | 'bottom-right'
+  | 'bottom-left';
 
 export function ChatWidget() {
   const [isOpen, setIsOpen] = useState(false);
@@ -85,16 +92,9 @@ export function ChatWidget() {
     content: string;
     attachContext: boolean;
   } | null>(null);
-  const panelRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
-  const {
-    frame,
-    isDragging,
-    expandPanel,
-    startDrag,
-    resetFrame,
-  } = useWidgetFrame(isOpen);
+  const { frame, startDrag, startResize, resetFrame } = useWidgetFrame(isOpen);
 
   useEffect(() => {
     void refreshSettings();
@@ -328,12 +328,6 @@ export function ChatWidget() {
     window.localStorage.setItem('webprose.widgetDeactivated', 'true');
   }
 
-  function closeFromHeader(event: ReactMouseEvent<HTMLButtonElement>) {
-    event.preventDefault();
-    event.stopPropagation();
-    deactivateWidget();
-  }
-
   if (isDeactivated) return null;
 
   return (
@@ -342,10 +336,10 @@ export function ChatWidget() {
       style={{
         left: frame.left,
         top: frame.top,
+        width: frame.width,
       }}
     >
       <div
-        ref={panelRef}
         className={`webprose-panel relative mb-3 flex min-h-0 origin-bottom-right flex-col overflow-hidden rounded-lg border shadow-2xl transition duration-200 ease-out ${
           isOpen
             ? 'translate-y-0 scale-100 opacity-100'
@@ -360,9 +354,7 @@ export function ChatWidget() {
         aria-hidden={!isOpen}
       >
         <header
-          className={`webprose-header flex h-14 shrink-0 items-center justify-between border-b px-4 ${
-            isDragging ? 'cursor-grabbing' : 'cursor-grab'
-          }`}
+          className="webprose-header flex h-14 shrink-0 cursor-default items-center justify-between border-b px-4"
           onPointerDown={startDrag}
           title="Drag to move"
         >
@@ -409,28 +401,6 @@ export function ChatWidget() {
               title={contextEnabled ? 'Context on' : 'Context off'}
             >
               <FileText className="h-4 w-4" />
-            </button>
-            <button
-              type="button"
-              onClick={(event) => {
-                event.preventDefault();
-                event.stopPropagation();
-                expandPanel();
-              }}
-              className="grid h-8 w-8 place-items-center rounded-md text-[#6b7a86] transition hover:bg-[#edf4f2] hover:text-[#172033] focus:outline-none focus:ring-2 focus:ring-[#6a9d9a] dark:text-[#9db0b5] dark:hover:bg-[#1b2a3f] dark:hover:text-[#edf4f2]"
-              aria-label="Resize chat"
-              title="Resize chat"
-            >
-              <Maximize2 className="h-4 w-4" />
-            </button>
-            <button
-              type="button"
-              onClick={closeFromHeader}
-              className="grid h-8 w-8 place-items-center rounded-md text-[#6b7a86] transition hover:bg-[#edf4f2] hover:text-[#172033] focus:outline-none focus:ring-2 focus:ring-[#6a9d9a] dark:text-[#9db0b5] dark:hover:bg-[#1b2a3f] dark:hover:text-[#edf4f2]"
-              aria-label="Close chat on this page"
-              title="Close"
-            >
-              <X className="h-4 w-4" />
             </button>
           </div>
         </header>
@@ -620,21 +590,148 @@ export function ChatWidget() {
         </footer>
       </div>
 
+      <ResizeHandles
+        height={frame.height}
+        isActive={isOpen}
+        width={frame.width}
+        startResize={startResize}
+      />
+
       <button
         type="button"
         onClick={() => setIsOpen((current) => !current)}
         onDoubleClick={resetFrame}
         className="webprose-fab ml-auto grid h-14 w-14 place-items-center rounded-full text-white shadow-xl transition focus:outline-none focus:ring-4 focus:ring-[#bddbd6]"
-        aria-label={isOpen ? 'Close WebProse chat' : 'Open WebProse chat'}
-        title={isOpen ? 'Close chat' : 'Open chat. Double click to reset position.'}
+        aria-label={isOpen ? 'Toggle WebProse chat' : 'Open WebProse chat'}
+        title={
+          isOpen
+            ? 'Toggle chat'
+            : 'Open chat. Double click to reset position.'
+        }
       >
-        {isOpen ? (
-          <X className="h-6 w-6" />
-        ) : (
-          <MessageSquareText className="h-6 w-6" />
-        )}
+        <MessageSquareText className="h-6 w-6" />
       </button>
     </div>
+  );
+}
+
+function ResizeHandles({
+  height,
+  isActive,
+  startResize,
+  width,
+}: {
+  height: number;
+  isActive: boolean;
+  startResize: (
+    handle: ResizeHandle,
+  ) => (event: ReactPointerEvent<HTMLElement>) => void;
+  width: number;
+}) {
+  if (!isActive) return null;
+
+  const edge = 8;
+  const corner = 16;
+
+  return (
+    <>
+      <div
+        aria-hidden="true"
+        className="absolute z-20"
+        style={{
+          cursor: 'ns-resize',
+          height: edge,
+          left: corner,
+          top: -edge,
+          width: width - corner * 2,
+        }}
+        onPointerDown={startResize('top')}
+      />
+      <div
+        aria-hidden="true"
+        className="absolute z-20"
+        style={{
+          cursor: 'ns-resize',
+          height: edge,
+          left: corner,
+          top: height,
+          width: width - corner * 2,
+        }}
+        onPointerDown={startResize('bottom')}
+      />
+      <div
+        aria-hidden="true"
+        className="absolute z-20"
+        style={{
+          cursor: 'ew-resize',
+          height: height - corner * 2,
+          left: -edge,
+          top: corner,
+          width: edge,
+        }}
+        onPointerDown={startResize('left')}
+      />
+      <div
+        aria-hidden="true"
+        className="absolute z-20"
+        style={{
+          cursor: 'ew-resize',
+          height: height - corner * 2,
+          left: width,
+          top: corner,
+          width: edge,
+        }}
+        onPointerDown={startResize('right')}
+      />
+      <div
+        aria-hidden="true"
+        className="absolute z-30"
+        style={{
+          cursor: 'nwse-resize',
+          height: corner,
+          left: -edge,
+          top: -edge,
+          width: corner,
+        }}
+        onPointerDown={startResize('top-left')}
+      />
+      <div
+        aria-hidden="true"
+        className="absolute z-30"
+        style={{
+          cursor: 'nesw-resize',
+          height: corner,
+          left: width - corner + edge,
+          top: -edge,
+          width: corner,
+        }}
+        onPointerDown={startResize('top-right')}
+      />
+      <div
+        aria-hidden="true"
+        className="absolute z-30"
+        style={{
+          cursor: 'nwse-resize',
+          height: corner,
+          left: width - corner + edge,
+          top: height - corner + edge,
+          width: corner,
+        }}
+        onPointerDown={startResize('bottom-right')}
+      />
+      <div
+        aria-hidden="true"
+        className="absolute z-30"
+        style={{
+          cursor: 'nesw-resize',
+          height: corner,
+          left: -edge,
+          top: height - corner + edge,
+          width: corner,
+        }}
+        onPointerDown={startResize('bottom-left')}
+      />
+    </>
   );
 }
 
@@ -654,7 +751,6 @@ function useWidgetFrame(isOpen: boolean) {
     width: number;
     height: number;
   } | null>(() => readStoredFrame());
-  const [isDragging, setIsDragging] = useState(false);
   const frame = clampFrame(
     manualFrame ?? {
       ...DEFAULT_PANEL_SIZE,
@@ -754,7 +850,6 @@ function useWidgetFrame(isOpen: boolean) {
     const startFrame = frame;
 
     event.currentTarget.setPointerCapture(event.pointerId);
-    setIsDragging(true);
 
     function move(pointerEvent: PointerEvent) {
       const nextFrame = clampFrame({
@@ -767,7 +862,6 @@ function useWidgetFrame(isOpen: boolean) {
     }
 
     function end() {
-      setIsDragging(false);
       window.removeEventListener('pointermove', move);
       window.removeEventListener('pointerup', end);
     }
@@ -776,20 +870,53 @@ function useWidgetFrame(isOpen: boolean) {
     window.addEventListener('pointerup', end, { once: true });
   }
 
-  function expandPanel() {
-    const nextFrame = clampFrame({
-      ...frame,
-      width:
-        frame.width >= MAX_PANEL_SIZE.width - 20
-          ? DEFAULT_PANEL_SIZE.width
-          : MAX_PANEL_SIZE.width,
-      height:
-        frame.height >= MAX_PANEL_SIZE.height - 20
-          ? DEFAULT_PANEL_SIZE.height
-          : MAX_PANEL_SIZE.height,
-    });
-    setManualFrame(nextFrame);
-    storeFrame(nextFrame);
+  function startResize(handle: ResizeHandle) {
+    return (event: ReactPointerEvent<HTMLElement>) => {
+      event.preventDefault();
+      event.stopPropagation();
+
+      const startX = event.clientX;
+      const startY = event.clientY;
+      const startFrame = frame;
+      const startRight = startFrame.left + startFrame.width;
+      const startBottom = startFrame.top + startFrame.height;
+      const cursor = resizeCursor(handle);
+      const previousDocumentCursor = document.documentElement.style.cursor;
+      const previousBodyCursor = document.body.style.cursor;
+      const previousUserSelect = document.body.style.userSelect;
+
+      event.currentTarget.setPointerCapture(event.pointerId);
+      document.documentElement.style.cursor = cursor;
+      document.body.style.cursor = cursor;
+      document.body.style.userSelect = 'none';
+
+      function move(pointerEvent: PointerEvent) {
+        const deltaX = pointerEvent.clientX - startX;
+        const deltaY = pointerEvent.clientY - startY;
+        const nextFrame = resizeFrame(
+          startFrame,
+          startRight,
+          startBottom,
+          deltaX,
+          deltaY,
+          handle,
+        );
+
+        setManualFrame(nextFrame);
+        storeFrame(nextFrame);
+      }
+
+      function end() {
+        document.documentElement.style.cursor = previousDocumentCursor;
+        document.body.style.cursor = previousBodyCursor;
+        document.body.style.userSelect = previousUserSelect;
+        window.removeEventListener('pointermove', move);
+        window.removeEventListener('pointerup', end);
+      }
+
+      window.addEventListener('pointermove', move);
+      window.addEventListener('pointerup', end, { once: true });
+    };
   }
 
   function resetFrame() {
@@ -799,9 +926,8 @@ function useWidgetFrame(isOpen: boolean) {
 
   return {
     frame,
-    isDragging,
-    expandPanel,
     startDrag,
+    startResize,
     resetFrame,
   };
 }
@@ -811,24 +937,95 @@ function shouldIgnoreMove(target: EventTarget | null): boolean {
   return Boolean(target.closest('button, select, input, textarea, a'));
 }
 
+function resizeFrame(
+  startFrame: {
+    left: number;
+    top: number;
+    width: number;
+    height: number;
+  },
+  startRight: number,
+  startBottom: number,
+  deltaX: number,
+  deltaY: number,
+  handle: ResizeHandle,
+) {
+  const horizontal = resizeHorizontalDirection(handle);
+  const vertical = resizeVerticalDirection(handle);
+  const width =
+    horizontal === 'left'
+      ? clampPanelWidth(startFrame.width - deltaX)
+      : horizontal === 'right'
+        ? clampPanelWidth(startFrame.width + deltaX)
+        : startFrame.width;
+  const height =
+    vertical === 'top'
+      ? clampPanelHeight(startFrame.height - deltaY)
+      : vertical === 'bottom'
+        ? clampPanelHeight(startFrame.height + deltaY)
+        : startFrame.height;
+
+  return clampFrame({
+    left: horizontal === 'left' ? startRight - width : startFrame.left,
+    top: vertical === 'top' ? startBottom - height : startFrame.top,
+    width,
+    height,
+  });
+}
+
+function resizeHorizontalDirection(
+  handle: ResizeHandle,
+): 'left' | 'right' | null {
+  if (handle === 'left' || handle.endsWith('-left')) return 'left';
+  if (handle === 'right' || handle.endsWith('-right')) return 'right';
+  return null;
+}
+
+function resizeVerticalDirection(
+  handle: ResizeHandle,
+): 'top' | 'bottom' | null {
+  if (handle === 'top' || handle.startsWith('top-')) return 'top';
+  if (handle === 'bottom' || handle.startsWith('bottom-')) return 'bottom';
+  return null;
+}
+
+function resizeCursor(handle: ResizeHandle): string {
+  if (handle === 'left' || handle === 'right') return 'ew-resize';
+  if (handle === 'top' || handle === 'bottom') return 'ns-resize';
+  if (handle === 'top-left' || handle === 'bottom-right') {
+    return 'nwse-resize';
+  }
+  return 'nesw-resize';
+}
+
+function clampPanelWidth(width: number): number {
+  const viewportWidth = window.innerWidth;
+  return clamp(
+    width,
+    Math.min(MIN_PANEL_SIZE.width, viewportWidth - 32),
+    Math.min(MAX_PANEL_SIZE.width, viewportWidth - 32),
+  );
+}
+
+function clampPanelHeight(height: number): number {
+  const viewportHeight = window.innerHeight;
+  return clamp(
+    height,
+    Math.min(MIN_PANEL_SIZE.height, viewportHeight - 120),
+    Math.min(MAX_PANEL_SIZE.height, viewportHeight - 120),
+  );
+}
+
 function clampFrame(frame: {
   left: number;
   top: number;
   width: number;
   height: number;
 }) {
-  const viewportWidth = window.innerWidth;
   const viewportHeight = window.innerHeight;
-  const width = clamp(
-    frame.width,
-    Math.min(MIN_PANEL_SIZE.width, viewportWidth - 32),
-    Math.min(MAX_PANEL_SIZE.width, viewportWidth - 32),
-  );
-  const height = clamp(
-    frame.height,
-    Math.min(MIN_PANEL_SIZE.height, viewportHeight - 120),
-    Math.min(MAX_PANEL_SIZE.height, viewportHeight - 120),
-  );
+  const viewportWidth = window.innerWidth;
+  const width = clampPanelWidth(frame.width);
+  const height = clampPanelHeight(frame.height);
   const maxLeft = Math.max(
     VIEWPORT_MARGIN,
     viewportWidth - width - VIEWPORT_MARGIN,
